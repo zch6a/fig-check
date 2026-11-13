@@ -68,10 +68,12 @@ there is, 2 when it could not run; `--json` gives the reports.
 | anything else | 345 pt | (one column) | LaTeX's `article` at 10 pt, letter paper |
 
 Each style's widths were read from the style file itself; each class's are what pdflatex sets with that class and
-those options (MiKTeX's class files, 2026-11-13; `acmart`'s after `\maketitle`, where its two columns begin). Widths from `article`'s class options and from `geometry` are
-worked out as `article.cls`, `size1x.clo` and `geometry.sty` do; for 33 preambles (paper sizes, margins, one margin
-alone, `twoside`, `landscape`, two columns, `\setlength`, `\addtolength`) they agree with the widths pdflatex prints,
-to 0.01 pt, and the tests hold those widths.
+those options (MiKTeX's class files, 2026-11-13; `acmart`'s after `\maketitle`, where its two columns begin).
+Widths from `article`'s class options and from the preamble are worked out as `article.cls`, `size1x.clo`,
+`geometry.sty` and `fullpage.sty` do. For 51 preambles (paper sizes, margins, one margin alone, ratios, `twoside`,
+`landscape`, `bindingoffset`, two columns, repeated `\geometry` calls, `\PassOptionsToPackage`, `fullpage`,
+`\setlength`, `\addtolength`, `\advance`) they agree with the widths pdflatex prints, to 0.01 pt, and the tests hold
+those widths.
 
 ### In Python: a matplotlib figure
 
@@ -112,9 +114,11 @@ notes = save_pgfplots(fig, "figures/loss.tex")  # width=r"\linewidth" by default
 \begin{figure}\centering\input{figures/loss.tex}\caption{...}\end{figure}
 ```
 
-The axes sit where matplotlib put them. Exported: lines (colour, width, dashes, markers), scatter points, bars and
-other rectangles, `fill_between`, error bars, text, axis labels, titles, limits, log scales, ticks and their labels,
-grids, legends. Labels are escaped for LaTeX, with `$...$` maths kept. What is not exported (images, colour bars, 3D
+The axes sit where matplotlib put them. Exported: lines (colour, opacity, width, dashes, markers, NaN gaps),
+scatter points, bars and other rectangles, `fill_between`, error bars, text, axis labels, titles, limits (inverted
+too), log scales, ticks with their labels (categories, dates, rotation) and the axis's scale factor, grids, legends
+(where matplotlib put them, with its entries and order), `twinx` axes. Labels are escaped for LaTeX, with `$...$`
+maths kept; `\mathregular` and characters like ≥, µ, α become LaTeX that pdflatex's default fonts can set. What is not exported (images, colour bars, 3D
 axes, figure-level text) is returned in `notes` and written as comments at the top of the file: for those, save a PDF
 and check it. It fills the role tikzplotlib did, for the parts of a figure papers mostly have; the code it writes was
 compiled with pdflatex and compared with the matplotlib figure.
@@ -138,8 +142,9 @@ data; the simulation matrices against the authors' published table.
 ## Limits
 
 - Widths from a style file or class the tool does not know (memoir, an acmart format not measured...) are not
-  read: it says so and uses `article`'s; give `--template`, or check figures with `--width`. Widths set in a macro, or by
-  arithmetic beyond `\setlength` and `\addtolength`, are not followed.
+  read: it says so and uses `article`'s; give `--template`, or check figures with `--width`. Widths set in a macro,
+  with `\dimexpr`, or by geometry's `includemp` are not followed; the first line of the output says which settings it
+  could not read.
 - Paths a macro builds (`\iftoggle{hq}{a}{b}`) are counted, not followed.
 - Text drawn as outlines (paths, not fonts) is not text to it; nor is text inside raster images.
 - Colours are the ones paths and text are drawn in; gradients and patterns are not followed.

@@ -30,18 +30,34 @@ LEGEND = {1: "north east", 2: "north west", 3: "south west", 4: "south east", 5:
           10: "center"}  # fmt: skip
 SPECIAL = {"\\": r"\textbackslash{}", "&": r"\&", "%": r"\%", "#": r"\#", "_": r"\_", "{": r"\{", "}": r"\}", "~": r"\textasciitilde{}",
            "^": r"\textasciicircum{}", "$": r"\$"}  # fmt: skip
+GREEK = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu", "nu", "xi", "pi", "rho",
+         "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega", "Gamma", "Delta", "Theta", "Lambda", "Xi", "Pi", "Sigma", "Phi", "Psi",
+         "Omega"]  # fmt: skip
+# characters pdflatex's default fonts do not have, as LaTeX maths (outside $...$ they are wrapped in $)
+UNICODE_MATHS = {"≥": r"\geq", "≤": r"\leq", "≠": r"\neq", "≈": r"\approx", "×": r"\times", "±": r"\pm", "∓": r"\mp", "·": r"\cdot",
+                 "°": r"^\circ", "→": r"\rightarrow", "←": r"\leftarrow", "↑": r"\uparrow", "↓": r"\downarrow", "∞": r"\infty",
+                 "√": r"\surd", "∑": r"\sum", "∈": r"\in", "µ": r"\mu",
+                 **{c: "\\" + n for c, n in zip("αβγδεζηθικλμνξπρστυφχψωΓΔΘΛΞΠΣΦΨΩ", GREEK, strict=True)}}  # fmt: skip
+UNICODE_TEXT = {"–": "--", "—": "---", "‘": "`", "’": "'", "“": "``", "”": "''", "…": r"\ldots{}", "\u00a0": "~"}
 
 
 def tex_text(s: str) -> str:
     r"""matplotlib text as LaTeX: mathtext between unescaped $ kept, the rest escaped; the Unicode minus made ASCII.
 
-    >>> tex_text("loss (%) of $\\alpha_1$ & co_2"), tex_text("−0.5")
-    ('loss (\\%) of $\\alpha_1$ \\& co\\_2', '$-$0.5')
+    >>> tex_text("loss (%) of $\\alpha_1$ & co_2"), tex_text("−0.5"), tex_text("≥ 5 µs, $\\mathregular{x}$")
+    ('loss (\\%) of $\\alpha_1$ \\& co\\_2', '$-$0.5', '$\\geq$ 5 $\\mu$s, $\\mathrm{x}$')
     """
     s = re.sub(r"\\mathdefault\{((?:[^{}]|\{[^{}]*\})*)\}", r"\1", s)  # matplotlib's tick labels: $\mathdefault{10^{2}}$
+    s = s.replace("\\mathregular", "\\mathrm")  # matplotlib's upright text in maths
     s = s.replace("\u2212", "$-$") if "$" not in s else s.replace("\u2212", "-")
     parts = re.split(r"((?<!\\)\$.*?(?<!\\)\$)", s)
-    return "".join(p if p.startswith("$") and p.endswith("$") and len(p) > 1 else "".join(SPECIAL.get(c, c) for c in p) for p in parts)
+    out = []
+    for p in parts:
+        if p.startswith("$") and p.endswith("$") and len(p) > 1:
+            out.append("".join(UNICODE_MATHS[c] + " " if c in UNICODE_MATHS else c for c in p))
+        else:
+            out.append("".join(SPECIAL.get(c) or UNICODE_TEXT.get(c) or (f"${UNICODE_MATHS[c]}$" if c in UNICODE_MATHS else c) for c in p))
+    return "".join(out)
 
 
 def _num(v: float) -> str:
@@ -78,7 +94,12 @@ def _dash(style: Any) -> str:
     )
 
 
+def _finite(*values: float) -> bool:
+    return all(math.isfinite(float(v)) for v in values)
+
+
 def _coords(xs: Any, ys: Any) -> str:
+    """Points as pgfplots coordinates; a NaN (matplotlib's gap) stays, and `unbounded coords=jump` breaks the line there."""
     pts = []
     for x, y in zip(xs, ys, strict=False):
         try:
@@ -97,12 +118,12 @@ def _coords(xs: Any, ys: Any) -> str:
     return "\n    ".join(x.rstrip() for x in lines)
 
 
-def _line(out: _Out, line: Any, legend: str | None) -> bool:
-    xs, ys = line.get_xdata(), line.get_ydata()
-    if not line.get_visible() or len(xs) == 0:
-        return False
+def _line_style(out: _Out, line: Any) -> list[str]:
+    """A Line2D's colour, opacity, dashes, width and markers as pgfplots options."""
     name, alpha = out.colour(_rgba(line.get_color()))
-    opts = [_opacity(name, alpha)] if legend is not None else ["forget plot", _opacity(name, alpha)]
+    if line.get_alpha() is not None:
+        alpha = float(line.get_alpha())
+    opts = [_opacity(name, alpha)]
     style = line.get_linestyle()
     marker = str(line.get_marker())
     if style in ("None", "none", " ", ""):
@@ -112,8 +133,9 @@ def _line(out: _Out, line: Any, legend: str | None) -> bool:
     if marker in MARKERS:
         mark = MARKERS[marker]
         face = line.get_markerfacecolor()
-        hollow = isinstance(face, str) and face.lower() == "none"
-        opts.append(f"mark={mark.rstrip('*') if hollow and mark.endswith('*') else mark}")
+        if isinstance(face, str) and face.lower() == "none":  # a hollow marker
+            mark = "o" if mark == "*" else mark.removesuffix("*")
+        opts.append(f"mark={mark}")
         opts.append(f"mark size={_num(line.get_markersize() / 2)}pt")
         if marker == "v":
             opts.append("mark options={solid, rotate=180}")
@@ -121,10 +143,38 @@ def _line(out: _Out, line: Any, legend: str | None) -> bool:
             opts.append("mark options={solid}")
     else:
         opts.append("no markers")
-    out.body.append(f"\\addplot[{', '.join(opts)}] coordinates {{\n    {_coords(xs, ys)}\n}};")
-    if legend is not None:
-        out.body.append(f"\\addlegendentry{{{legend}}}")
-    return True
+    return opts
+
+
+def _line(out: _Out, line: Any) -> None:
+    xy = line.get_xydata()  # in data units: categories and dates converted, masked values NaN
+    if not line.get_visible() or len(xy) == 0:
+        return
+    opts = ["forget plot", *_line_style(out, line)]  # the legend is drawn from the legend's own entries
+    out.body.append(f"\\addplot[{', '.join(opts)}] coordinates {{\n    {_coords(xy[:, 0], xy[:, 1])}\n}};")
+
+
+def _legend_image(out: _Out, handle: Any) -> str:
+    """pgfplots options that draw a legend entry's symbol like matplotlib's."""
+    kind = type(handle).__name__
+    try:
+        if kind == "Line2D":
+            return ", ".join(_line_style(out, handle))
+        if kind in ("Rectangle", "Patch", "Polygon", "FancyBboxPatch"):
+            name, alpha = out.colour(handle.get_facecolor())
+            return f"area legend, draw=none, fill={name}" + (f", fill opacity={_num(alpha)}" if alpha < 0.999 else "")
+        if kind in ("PathCollection", "PolyCollection", "FillBetweenPolyCollection"):
+            faces = handle.get_facecolors()
+            name, alpha = out.colour(faces[0] if len(faces) else (0, 0, 0, 1))
+            marks = kind == "PathCollection"
+            return f"only marks, mark=*, {_opacity(name, alpha)}" if marks else f"area legend, draw=none, fill={name}, fill opacity={_num(alpha)}"
+        if kind == "LineCollection":
+            colours = handle.get_colors()
+            name, alpha = out.colour(colours[0] if len(colours) else (0, 0, 0, 1))
+            return _opacity(name, alpha)
+    except (AttributeError, TypeError, ValueError, IndexError):
+        pass
+    return "empty legend"
 
 
 def _rgba(c: Any) -> tuple[float, float, float, float]:
@@ -145,11 +195,6 @@ def _rgba(c: Any) -> tuple[float, float, float, float]:
     return (vals[0], vals[1], vals[2], vals[3] if len(vals) > 3 else 1.0)
 
 
-def _legend_entry(label: Any) -> str | None:
-    s = str(label) if label is not None else ""
-    return None if not s or s.startswith("_") else tex_text(s)
-
-
 def _axis(out: _Out, ax: Any, fig_w: float, fig_h: float) -> None:
     pos = ax.get_position()
     x0, y0, w, h = pos.x0, pos.y0, pos.width, pos.height
@@ -159,7 +204,9 @@ def _axis(out: _Out, ax: Any, fig_w: float, fig_h: float) -> None:
     ]  # fmt: skip
     xmin, xmax = ax.get_xlim()
     ymin, ymax = ax.get_ylim()
-    opts += [f"xmin={_num(xmin)}", f"xmax={_num(xmax)}", f"ymin={_num(ymin)}", f"ymax={_num(ymax)}"]
+    opts += [f"xmin={_num(min(xmin, xmax))}", f"xmax={_num(max(xmin, xmax))}", f"ymin={_num(min(ymin, ymax))}", f"ymax={_num(max(ymin, ymax))}"]
+    opts.append("unbounded coords=jump")  # a NaN breaks a line, as in matplotlib
+    opts.append("scaled ticks=false")  # the tick labels are matplotlib's; its scale factor is a node below
     for a, scale in (("x", ax.get_xscale()), ("y", ax.get_yscale())):
         if scale == "log":
             opts.append(f"{a}mode=log")
@@ -184,6 +231,10 @@ def _axis(out: _Out, ax: Any, fig_w: float, fig_h: float) -> None:
         opts.append(f"{a}tick={{{','.join(_num(t) for t, _ in pairs)}}}")
         if any(text for _, text in pairs):
             opts.append(f"{a}ticklabels={{{','.join('{' + tex_text(text) + '}' for _, text in pairs)}}}")
+            angle = next((float(lab.get_rotation()) for lab in labels if lab.get_text()), 0.0)
+            if abs(angle) > 0.5:
+                anchor = ("north east" if a == "x" else "east") if angle > 0 else ("north west" if a == "x" else "west")
+                opts.append(f"{a}ticklabel style={{rotate={_num(angle)}, anchor={anchor}}}")
         else:
             opts.append(f"{a}ticklabels=\\empty")
     if ax.get_xgridlines() and any(g.get_visible() for g in ax.get_xgridlines()):
@@ -194,13 +245,21 @@ def _axis(out: _Out, ax: Any, fig_w: float, fig_h: float) -> None:
         opts.append("x dir=reverse")
     if ymin > ymax:
         opts.append("y dir=reverse")
+    side = ax.yaxis.get_ticks_position()  # twinx: the twin's y axis on the right, the first's on the left
+    if side == "right":
+        opts += ["axis y line*=right", "axis x line=none"]
+    elif side == "left":
+        opts.append("axis y line*=left")
     legend = ax.get_legend()
     if legend is not None and legend.get_visible():
-        loc = getattr(legend, "_loc", 1)
-        opts.append(f"legend pos={LEGEND.get(loc, 'north east')}" if loc in (1, 2, 3, 4) else "legend pos=north east")
+        try:  # where matplotlib put it ("best" included), as a fraction of the axes
+            x0, y0 = ax.transAxes.inverted().transform(legend.get_window_extent().p0)
+            opts.append(f"legend style={{at={{({_num(round(x0, 4))},{_num(round(y0, 4))})}}, anchor=south west}}")
+        except (AttributeError, TypeError, ValueError):
+            loc = getattr(legend, "_loc", 1)
+            opts.append(f"legend pos={LEGEND.get(loc, 'north east')}")
         opts.append("legend cell align=left")
     out.body.append("\\begin{axis}[\n  " + ",\n  ".join(opts) + "\n]")
-    legend_labels = {t.get_text() for t in legend.get_texts()} if legend is not None else set()
 
     for patch in ax.patches:
         if not patch.get_visible() or type(patch).__name__ != "Rectangle":
@@ -209,6 +268,8 @@ def _axis(out: _Out, ax: Any, fig_w: float, fig_h: float) -> None:
             continue
         x, y = patch.get_x(), patch.get_y()
         pw, ph = patch.get_width(), patch.get_height()
+        if not _finite(x, y, pw, ph):  # a NaN bar: matplotlib draws nothing
+            continue
         fill, fa = out.colour(patch.get_facecolor())
         out.body.append(
             f"\\fill[{_opacity(fill, fa, 'fill opacity')}] (axis cs:{_num(x)},{_num(y)}) rectangle (axis cs:{_num(x + pw)},{_num(y + ph)});"
@@ -227,17 +288,15 @@ def _axis(out: _Out, ax: Any, fig_w: float, fig_h: float) -> None:
                 out.notes.append("a scatter with a colour per point: drawn in its first colour")
             sizes = c.get_sizes()
             size = math.sqrt(float(sizes[0])) / 2 if len(sizes) else 3  # s is the marker's area in points squared
-            label = _legend_entry(c.get_label()) if c.get_label() in legend_labels else None
-            forget = "" if label is not None else "forget plot, "
-            out.body.append(f"\\addplot[{forget}only marks, mark=*, {_opacity(name, alpha)}, mark size={_num(size)}pt] coordinates {{\n    "
+            out.body.append(f"\\addplot[forget plot, only marks, mark=*, {_opacity(name, alpha)}, mark size={_num(size)}pt] coordinates {{\n    "
                             f"{_coords(offsets[:, 0], offsets[:, 1])}\n}};")  # fmt: skip
-            if label is not None:
-                out.body.append(f"\\addlegendentry{{{label}}}")
         elif kind in ("PolyCollection", "FillBetweenPolyCollection"):  # fill_between
             faces = c.get_facecolors()
             name, alpha = out.colour(faces[0] if len(faces) else (0, 0, 0, 1))
             for path in c.get_paths():
-                v = path.vertices
+                v = [(x, y) for x, y in path.vertices if _finite(x, y)]
+                if len(v) < 3:
+                    continue
                 out.body.append(
                     f"\\fill[{_opacity(name, alpha, 'fill opacity')}] " + " -- ".join(f"(axis cs:{_num(x)},{_num(y)})" for x, y in v) + " -- cycle;"
                 )
@@ -245,7 +304,7 @@ def _axis(out: _Out, ax: Any, fig_w: float, fig_h: float) -> None:
             colours = c.get_colors()
             widths = c.get_linewidths()
             for i, seg in enumerate(c.get_segments()):
-                if len(seg) < 2:
+                if len(seg) < 2 or not all(_finite(x, y) for x, y in seg):
                     continue
                 name, alpha = out.colour(colours[i % len(colours)] if len(colours) else (0, 0, 0, 1))
                 lw = widths[i % len(widths)] if len(widths) else 1
@@ -255,7 +314,7 @@ def _axis(out: _Out, ax: Any, fig_w: float, fig_h: float) -> None:
         else:
             out.notes.append(f"a {kind} (an image, mesh or contour): save it as PDF and check it with fig-check")
     for line in ax.get_lines():
-        _line(out, line, _legend_entry(line.get_label()) if line.get_label() in legend_labels else None)
+        _line(out, line)
     for t in ax.texts:
         if not t.get_visible() or not t.get_text():
             continue
@@ -267,6 +326,23 @@ def _axis(out: _Out, ax: Any, fig_w: float, fig_h: float) -> None:
         anchor = {"left": "west", "right": "east", "center": "center"}.get(t.get_horizontalalignment(), "center")
         name, _ = out.colour(_rgba(t.get_color()))
         out.body.append(f"\\node[anchor={anchor}, {name}] at ({cs}:{_num(x)},{_num(y)}) {{{tex_text(t.get_text())}}};")
+        if getattr(t, "arrow_patch", None) is not None:
+            out.notes.append(f"the arrow of the annotation {t.get_text()!r} (its text is exported)")
+    # the scale factor matplotlib puts at the end of an axis (1e7, or x10^7 with useMathText): after the axis, where
+    # pgfplots does not clip it to the plot area
+    scale_labels = []
+    for a, at, style in (("x", "(rel axis cs:1,0)", "anchor=north east, yshift=-1.6em"), ("y", "(rel axis cs:0,1)", "anchor=south west")):
+        offset = getattr(ax, f"{a}axis").get_offset_text()
+        if offset.get_visible() and offset.get_text():
+            scale_labels.append(f"\\node[{style}] at {at} {{{tex_text(offset.get_text())}}};")
+    if scale_labels:
+        i = max(k for k, line in enumerate(out.body) if line.startswith("\\begin{axis}["))
+        out.body[i] = out.body[i].removesuffix("\n]") + ",\n  after end axis/.append code={" + " ".join(scale_labels) + "}\n]"
+    if legend is not None and legend.get_visible():
+        handles = getattr(legend, "legend_handles", None) or getattr(legend, "legendHandles", [])
+        for handle, text in zip(handles, legend.get_texts(), strict=False):
+            out.body.append(f"\\addlegendimage{{{_legend_image(out, handle)}}}")
+            out.body.append(f"\\addlegendentry{{{tex_text(text.get_text())}}}")
     if ax.images:
         out.notes.append(f"{len(ax.images)} image(s) (imshow): save the figure as PDF at dpi=300 and check it with fig-check")
     out.body.append("\\end{axis}")

@@ -18,4 +18,5 @@ First release.
   `--template ieee`, `acm`, `lncs`.
 - `save_pgfplots(fig, "fig.tex")` / `to_pgfplots(fig)`: a matplotlib figure as pgfplots code that LaTeX draws at its
   printed width in the paper's font, with notes on what it could not export.
+- Settings it cannot read are named in the first line of the output.
 - Reads PDF, PNG, JPEG and SVG with the standard library only.

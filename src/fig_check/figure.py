@@ -14,6 +14,7 @@ written to disk. matplotlib is not a dependency: anything with a `savefig(file, 
 from __future__ import annotations
 
 import io
+import numbers
 from typing import Any
 
 from .check import Limits, Report, check_bytes
@@ -27,15 +28,20 @@ def printed_width(width: float | str | None, template: str = "article") -> float
     >>> printed_width("column", "icml"), printed_width("text", "icml"), printed_width("0.5\\textwidth", "neurips")
     (3.25, 6.75, 2.75)
     """
-    if width is None or isinstance(width, (int, float)):
-        return None if width is None else float(width)
     if template not in TEMPLATES:
         raise ValueError(f"template {template!r}: one of {', '.join(sorted(TEMPLATES))}")
+    if width is None:
+        return None
+    if isinstance(width, numbers.Real):  # numpy's floats too
+        if not 0 < float(width) < 1000:
+            raise ValueError(f"width {width!r}: inches, more than 0")
+        return float(width)
     t = TEMPLATES[template]
     named = {"column": t.column, "columnwidth": t.column, "text": t.text, "textwidth": t.text}
-    if width.strip() in named:
-        return named[width.strip()]
-    inches = dimension(width, t.column, t)
+    text = str(width).strip()
+    if text in named:
+        return named[text]
+    inches = dimension(text, t.column, t)
     if inches is None or inches <= 0:
         raise ValueError(f"width {width!r}: inches, a length like 3.25in or 0.48\\linewidth, or 'column' or 'text'")
     return inches
@@ -50,6 +56,8 @@ def check_figure(fig: Any, width: float | str | None = None, *, template: str = 
     arguments go to `savefig` (`bbox_inches="tight"` if that is how you will save it). `print()` the report to read
     it; `report.worst` is "ok", "warning" or "error".
     """
+    if "format" in savefig:
+        raise ValueError("check_figure saves the figure as PDF to check it: leave format= out")
     inches = printed_width(width, template)
     buf = io.BytesIO()
     fig.savefig(buf, format="pdf", **savefig)

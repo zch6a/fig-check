@@ -43,6 +43,24 @@ LATEX = [
     (r"\documentclass[a4paper]{article}\usepackage[landscape]{geometry}", 591.53, 591.53),
     (r"\documentclass{article}\usepackage[papersize={6in,9in},margin=0.5in]{geometry}", 361.35, 361.35),
     (r"\documentclass{article}\usepackage[paperwidth=7in,paperheight=10in]{geometry}", 354.12, 354.12),
+    (r"\documentclass{article}\advance\textwidth 2cm", 401.91, 401.91),
+    (r"\documentclass{article}\advance\textwidth by -1in", 272.73, 272.73),
+    (r"\documentclass{article}\usepackage{geometry}\geometry{width=5in}\geometry{margin=1.5in}", 397.49, 397.49),
+    (r"\documentclass{article}\usepackage[margin=1in]{geometry}\geometry{width=5in}", 469.76, 469.76),
+    (r"\documentclass[twocolumn]{article}\usepackage[margin=1in,columnsep=0pt]{geometry}", 469.76, 234.88),
+    (r"\documentclass{article}\setlength{\textwidth}{16,5cm}", 469.47, 469.47),
+    (r"\documentclass{article}\usepackage[margin=1in,bindingoffset=0.5in]{geometry}", 433.62, 433.62),
+    (r"\documentclass{article}\usepackage[a3paper,margin=2cm]{geometry}", 731.24, 731.24),
+    (r"\documentclass{article}\usepackage[b4paper,margin=2cm]{geometry}", 597.51, 597.51),
+    (r"\documentclass[a3paper]{article}", 345.00, 345.00),
+    (r"\documentclass[a3paper]{article}\usepackage[margin=2cm]{geometry}", 731.24, 731.24),
+    (r"\documentclass{article}\PassOptionsToPackage{margin=1in}{geometry}\usepackage{geometry}", 469.76, 469.76),
+    (r"\documentclass{article}\usepackage{fullpage}", 469.76, 469.76),
+    (r"\documentclass[a4paper]{article}\usepackage[cm]{fullpage}", 512.15, 512.15),
+    (r"\documentclass{article}\usepackage[left=1in,hmarginratio=1:1]{geometry}", 469.76, 469.76),
+    (r"\documentclass{article}\usepackage[right=1in,hmarginratio=2:1]{geometry}", 397.49, 397.49),
+    (r"\documentclass{article}\usepackage[left=1.5in,centering]{geometry}", 397.49, 397.49),
+    (r"\documentclass[conference]{IEEEtran}\usepackage[margin=0.75in]{geometry}", 505.89, 246.94),
 ]
 
 
@@ -111,6 +129,19 @@ def test_settings_after_begin_document_and_in_macros_are_not_the_preamble_s() ->
 def test_geometry_s_pass_option_keeps_the_class_s_layout() -> None:
     t, how = layout(r"\documentclass{article}\usepackage[pass]{geometry}")
     assert (t, how) == (TEMPLATES["article"], "from the class options")
+
+
+@pytest.mark.parametrize(
+    ("preamble", "said"),
+    [
+        (r"\setlength{\textwidth}{\dimexpr\paperwidth-2in\relax}", r"not read: \setlength{\textwidth}{\dimexpr\paperwidth-2in\relax}"),
+        (r"\usepackage[includemp,margin=1in]{geometry}", "not read: geometry's includemp"),
+        (r"\addtolength{\textwidth}{-10in}", r"not read: \addtolength{\textwidth}{-10in} (it would leave no text width)"),
+    ],
+)
+def test_what_it_cannot_read_is_said(preamble: str, said: str) -> None:
+    t, how = layout("\\documentclass{article}" + preamble)
+    assert said in how and t.text > 0
 
 
 def test_an_unknown_class_says_so() -> None:

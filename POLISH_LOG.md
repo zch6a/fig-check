@@ -125,3 +125,52 @@ coordinates), labels, titles, limits, log scales, ticks with their labels, grids
 Tests: 158 (+2 skipped doctests of examples needing a figure). ruff, ruff format, mypy clean.
 
 Next: polishing round 3 (a social card; a look at real papers' figures again with the new widths; review pass).
+### 2026-11-13 — polishing round 3
+
+**An independent review** (a separate reviewer given the code, not my conclusions) of rounds 1–2, each finding
+reproduced against pdflatex or by compiling the exported code. All fixed except two, below.
+
+`layout()`, each fix checked against pdflatex (the table is now 51 preambles, all within 0.01 pt):
+
+- `\advance\textwidth 2cm` was read as an assignment (57 pt instead of 402): handled as an addition.
+- Repeated `\geometry` calls: pdflatex showed that when both margins are set a width is over-specified and dropped,
+  whatever the order; the reviewer's suggested "later call wins" was wrong for one order, and pdflatex decided it.
+- `columnsep=0pt` was ignored (`or` on a zero): `is not None`.
+- `16,5cm` (TeX takes a decimal comma) now read; `\dimexpr` and other macros are named in the header as "not read"
+  instead of silently ignored, as is geometry's `includemp`.
+- `bindingoffset`, `hmarginratio`/`centering` with one margin, `\PassOptionsToPackage{...}{geometry}`, `fullpage`
+  (and `[cm]`), geometry's ISO A0–A6 and B0–B6 papers (and the class's paper option read by geometry, but not by
+  article itself) — all matched with pdflatex.
+- A setting that would leave no text width is refused and named.
+
+`to_pgfplots`, each fix compiled with pdflatex and the page compared with the matplotlib figure:
+
+- Categorical and date data were raw strings (a "Dimension too large" stop, or empty plots): `get_xydata()`, matplotlib's
+  own unit conversion. Masked values and NaN gaps break the line (`unbounded coords=jump`), NaN bars are skipped.
+- Legends: built from matplotlib's legend itself (its handles, texts and order, `\addlegendimage` for each), so
+  `ax.legend(["a","b"])`, bar entries and mixed scatter/line legends are right; placed where matplotlib put it (its
+  bounding box), "best" included, instead of a fixed corner.
+- `\mathregular` (undefined in LaTeX) becomes `\mathrm`; ≥, µ, Greek letters and dashes become LaTeX that pdflatex's
+  default fonts set.
+- Inverted axes (min/max kept ordered, `dir=reverse`), line `alpha`, hollow circles (`mark=` was empty), `twinx`
+  (axis lines left/right), rotated tick labels, pgfplots' own tick scaling turned off (it added ×10⁴ to date axes),
+  matplotlib's scale factor (1e7) drawn after the axis where pgfplots does not clip it, annotation arrows noted.
+- `check_figure`: numpy floats, widths of 0 or less, the template always checked, `format=` refused.
+
+Not done: AAAI-26's style name (the reviewer thought `aaai2026.sty`; not verified, so detection is unchanged), and
+an error bar's legend symbol is a line, not its marker.
+
+**Real papers again** (SegNet: IEEEtran compsoc journal; LIME: an old ACM class; GPT-3, Adam, LoRA, EfficientNet;
+fetched to the scratchpad, deleted after): IEEEtran's Computer Society widths applied (7.17/3.50 in). **Found**:
+EfficientNet loads its style as `\usepackage[accepted]{sty/icml2019}`, a folder in the name, and got article's
+widths: styles are matched by their file name now (ICML, 3.25 in column). LIME's `sig-alternate` is named as not
+known. Adam's source has no figures, and fig-check says so.
+
+**Social card**: `scripts/social-card.html`, rendered with headless Chrome (no network, its own profile, deleted
+after) to `docs/social-preview.png`, with fig-check's own output on the example. Setting it as the repository's
+social preview is a repository setting for its owner.
+
+Tests: 184 (51 preambles and 25 class cases from pdflatex; 17 for the exporter). ruff, ruff format, mypy clean.
+
+Next: polishing round 4 (an end-to-end check: a paper with exported pgfplots figures compiled and checked by
+fig-check itself; CLI and JSON output review; packaging check of the wheel).
