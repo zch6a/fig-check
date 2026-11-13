@@ -32,7 +32,7 @@ uvx --from git+https://github.com/zch6a/fig-check fig-check paper/
   再应用导言区自己的 `geometry` 选项、`\setlength{\textwidth}` 或 `\columnsep`。识别不了时用 `--template` 指定。
 - **单张图**：`fig-check plot.pdf --width 3.25in`。
 - **让 LaTeX 来画**：`save_pgfplots(fig, "figures/loss.tex")` 把 matplotlib 图写成 pgfplots 代码，论文里 `\input` 它（导言区加 `\usepackage{pgfplots}`），
-  LaTeX 按印出的宽度、用论文自己的字体和字号画图，字就不会随图缩小。导出折线、散点、柱、`fill_between`、误差棒、文字、坐标轴标签、标题、范围、对数轴、刻度、网格、图例；
+  LaTeX 按印出的宽度、用论文自己的字体和字号画图，字就不会随图缩小（端到端实测：同一张 6×4 英寸的图放进双栏论文，作为 PDF 插入时字印出 5.3 pt，导出为 pgfplots 后为 10 pt）。导出折线、散点、柱、`fill_between`、误差棒、文字、坐标轴标签、标题、范围、对数轴、刻度、网格、图例；
   不能导出的（图像、色条、3D、整图文字）在返回的 notes 里列出，也写在文件开头的注释里。
 - **会议之外的文档类**：IEEEtran、acmart（sigconf 等）、llncs、elsarticle、revtex4-2 的宽度取自 pdflatex 用这些类与选项实际排出的结果。
 - **保存之前的 matplotlib 图**：`check_figure(fig, width="column", template="icml")`，返回的报告 `print()` 出来与命令行输出相同；图只在内存里存成 PDF 检查，不写盘，其余关键字参数传给 `savefig`。

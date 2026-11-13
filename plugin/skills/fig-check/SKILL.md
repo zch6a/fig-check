@@ -28,5 +28,6 @@ uvx --from git+https://github.com/zch6a/fig-check fig-check plot.pdf --width 3.2
 - For plots whose labels come out too small, offer the cleaner fix: `from fig_check import save_pgfplots;
   save_pgfplots(fig, "figures/x.tex")`, then `\input{figures/x.tex}` with `\usepackage{pgfplots}`, so LaTeX draws
   the plot at its printed width in the paper's font. Read back the notes it returns (what it could not export).
-- Exit status 1 means there is something to fix; `--json` gives the reports. A note about paths built by macros means
+- Exit status 1 means there is something to fix; `--json` gives `projects` (the widths used and how they were found,
+  including settings it could not read) and `figures` (each with its findings). A note about paths built by macros means
   those figures were not checked: run it on those files directly with `--width`.

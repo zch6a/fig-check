@@ -174,3 +174,30 @@ Tests: 184 (51 preambles and 25 class cases from pdflatex; 17 for the exporter).
 
 Next: polishing round 4 (an end-to-end check: a paper with exported pgfplots figures compiled and checked by
 fig-check itself; CLI and JSON output review; packaging check of the wheel).
+### 2026-11-13 — polishing round 4
+
+**CLI and JSON, tried on the awkward cases** (no arguments, a missing file, an empty folder, a text file, `--width 3`,
+`--json`, a figure with no width):
+
+- A text file given by mistake was "1 figure(s), 0 with something to fix", exit status 0: now an error (exit 2), "not a
+  figure (PDF, PNG, JPEG or SVG), nor a LaTeX project".
+- `--width 3` now suggests `3in`.
+- `--json` was a bare list of figures, without the widths they were checked at or how those were found: now
+  `{"version", "limits", "projects": [{"main", "template", "how", "text_width", "column_width"}], "figures": [...]}`
+  (before 0.1.0, so no one's parser breaks), with numbers rounded to 4 decimals (it printed `2.6399999999999997`).
+- A project's TikZ and pgfplots figures are counted in a note (their text is the paper's own).
+
+**End to end** (local, with pdflatex; CI has no TeX): one 6 × 4 in matplotlib figure in a two-column paper, included
+as a PDF at the column width and exported with `save_pgfplots`; each compiled paper checked by fig-check at its own
+size. As a PDF: 5.3 pt text, all 16 pieces under 7 pt. As pgfplots: 10 pt. This also checked the PDF reader on
+pdflatex's own output (the included figure as a form XObject, scaled). The README gives the result.
+
+**Packaging**: wheel and sdist built and listed. The wheel has the package only (no tests, docs or examples); the sdist
+has the tests and the example, so its tests run. Installed into a clean Python 3.10 environment: `fig-check --version`,
+the example project, and `import fig_check` without matplotlib loaded all work. Added: `py.typed` (the API has types),
+classifiers (Matplotlib, Visualization, LaTeX, Typed), a description naming the matplotlib and pgfplots parts.
+
+Tests: 186. ruff, ruff format, mypy clean.
+
+Next: polishing round 5 (a last review of everything against the "polish" definition; docs read through end to end;
+then v0.1.0).

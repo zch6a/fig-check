@@ -38,7 +38,9 @@ fig-check: 3 figure(s), 2 with something to fix
 ```
 
 That is the made-up project in [examples/paper](examples/paper). Exit status 0 when there is nothing to fix, 1 when
-there is, 2 when it could not run; `--json` gives the reports.
+there is, 2 when it could not run. `--json` gives `{"version", "limits", "projects": [{"main", "template", "how",
+"text_width", "column_width"}], "figures": [{"figure", "where", "printed", "scale", "smallest", "findings", "worst"}]}`
+(widths in inches, text in points).
 
 ## What it reads
 
@@ -122,6 +124,11 @@ maths kept; `\mathregular` and characters like ≥, µ, α become LaTeX that pdf
 axes, figure-level text) is returned in `notes` and written as comments at the top of the file: for those, save a PDF
 and check it. It fills the role tikzplotlib did, for the parts of a figure papers mostly have; the code it writes was
 compiled with pdflatex and compared with the matplotlib figure.
+
+End to end, one 6 × 4 in matplotlib figure in a two-column paper, each compiled paper checked by fig-check at its
+own size: included as a PDF at the column width, its text prints at 5.3 pt (all 16 pieces under 7 pt); exported with
+`save_pgfplots`, at 10 pt, the paper's own size. Figures drawn by LaTeX (TikZ, pgfplots) are counted in a note when
+checking a project; their text is the paper's.
 
 ## What it checks
 

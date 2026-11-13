@@ -140,7 +140,22 @@ def test_json_and_a_figure_file(tmp_path: Path, capsys: pytest.CaptureFixture[st
     f = write(tmp_path, "plot.pdf", pdf(b"BT /F1 10 Tf (a) Tj ET", width=432, height=288, resources=FONT))
     assert cli.main([str(f), "--width", "6in", "--json"]) == 0
     data = json.loads(capsys.readouterr().out)
-    assert data[0]["worst"] == "ok" and data[0]["smallest"] == 10.0 and data[0]["printed"] == 6.0
+    assert data["projects"] == [] and data["limits"]["font"] == 7.0 and data["version"]
+    fig = data["figures"][0]
+    assert fig["worst"] == "ok" and fig["smallest"] == 10.0 and fig["printed"] == 6.0
+
+
+def test_json_for_a_project_says_what_set_the_widths(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    write(tmp_path, "main.tex", "\\documentclass{article}\\usepackage[margin=1in]{geometry}\\begin{document}\n"
+          "\\includegraphics[width=0.5\\linewidth]{plot}\n\\begin{tikzpicture}\\end{tikzpicture}\n\\end{document}\n")  # fmt: skip
+    write(tmp_path, "plot.pdf", pdf(b"BT /F1 10 Tf (a) Tj ET", width=432, height=288, resources=FONT))
+    assert cli.main([str(tmp_path), "--json"]) == 1
+    data = json.loads(capsys.readouterr().out)
+    how = "from the class options; the preamble sets: geometry margin=1in"
+    assert data["projects"] == [{"main": "main.tex", "template": "article, 10pt letter (LaTeX's default)", "how": how,
+                                 "text_width": 6.5, "column_width": 6.5}]  # fmt: skip
+    assert data["figures"][0]["printed"] == 3.25 and data["figures"][0]["scale"] == 0.5417  # rounded
+    assert "1 figure(s) drawn by LaTeX (TikZ, pgfplots)" in data["figures"][1]["findings"][0]["message"]
 
 
 def test_errors_and_help(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -150,3 +165,9 @@ def test_errors_and_help(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> 
     with pytest.raises(SystemExit):
         cli.main(["x.pdf", "--width", "wide"])
     assert cli.main([]) == 2
+    (tmp_path / "notes.txt").write_text("not a figure", encoding="utf-8")
+    assert cli.main([str(tmp_path / "notes.txt")]) == 2
+    assert "not a figure" in capsys.readouterr().err
+    with pytest.raises(SystemExit):
+        cli.main(["x.pdf", "--width", "3"])
+    assert "(inches: 3in)" in capsys.readouterr().err

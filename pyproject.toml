@@ -1,18 +1,23 @@
 [project]
 name = "fig-check"
 version = "0.1.0"
-description = "Check a paper's figures as they will print: font sizes at their printed scale, colours that people with colour vision deficiency cannot tell apart, raster resolution. For a LaTeX project at the widths its figures print at, or single PDF, PNG, JPEG and SVG files."
+description = "Check a paper's figures as they will print: font sizes at their printed scale, colours that people with colour vision deficiency cannot tell apart, raster resolution. For a LaTeX project at the widths its figures print at, single PDF, PNG, JPEG and SVG files, or matplotlib figures before saving; and matplotlib figures as pgfplots code."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [{ name = "zch6a" }]
-keywords = ["figures", "latex", "matplotlib", "colorblind", "accessibility", "font-size", "dpi", "paper", "research"]
+keywords = ["figures", "latex", "matplotlib", "pgfplots", "tikz", "colorblind", "accessibility", "font-size", "dpi", "paper", "research"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
     "Operating System :: OS Independent",
+    "Framework :: Matplotlib",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Text Processing :: Markup :: LaTeX",
+    "Typing :: Typed",
 ]
 # No dependencies: zlib and struct for PDF and PNG, xml.etree for SVG.
 dependencies = []

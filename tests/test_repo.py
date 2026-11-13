@@ -19,3 +19,9 @@ def test_the_readme_output_is_the_examples(capsys: pytest.CaptureFixture[str], m
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     shown = re.search(r"```\n(fig-check: main\.tex: [\s\S]*?)\n```", readme)
     assert shown and shown.group(1) == printed, "run: fig-check examples/paper, and paste into the README"
+
+
+def test_the_package_is_typed() -> None:
+    root = Path(__file__).resolve().parent.parent
+    assert (root / "src" / "fig_check" / "py.typed").is_file()
+    assert "dependencies = []" in (root / "pyproject.toml").read_text(encoding="utf-8")

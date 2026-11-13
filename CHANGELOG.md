@@ -19,4 +19,5 @@ First release.
 - `save_pgfplots(fig, "fig.tex")` / `to_pgfplots(fig)`: a matplotlib figure as pgfplots code that LaTeX draws at its
   printed width in the paper's font, with notes on what it could not export.
 - Settings it cannot read are named in the first line of the output.
-- Reads PDF, PNG, JPEG and SVG with the standard library only.
+- `--json` gives the projects' widths and how they were found as well as the figures; numbers rounded.
+- Reads PDF, PNG, JPEG and SVG with the standard library only; typed (`py.typed`).

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -26,8 +27,20 @@ FIGURES = {".pdf", ".png", ".jpg", ".jpeg", ".svg", ".eps"}
 def _width(text: str) -> float:
     w = dimension(text, 0, TEMPLATES["article"])
     if w is None or w <= 0:
-        raise argparse.ArgumentTypeError(f"a width like 3.25in, 8cm or 240pt, not {text!r}")
+        hint = f" (inches: {text.strip()}in)" if text.strip().replace(".", "", 1).isdigit() else ""
+        raise argparse.ArgumentTypeError(f"a width like 3.25in, 8cm or 240pt, not {text!r}{hint}")
     return w
+
+
+def _rounded(value: object) -> object:
+    """JSON without float noise: 2.6399999999999997 as 2.64 (4 decimals)."""
+    if isinstance(value, float):
+        return round(value, 4)
+    if isinstance(value, dict):
+        return {k: _rounded(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_rounded(v) for v in value]
+    return value
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -51,27 +64,32 @@ def main(argv: list[str] | None = None) -> int:
     limits = Limits(font=args.min_font, dpi=args.min_dpi, font_error=min(Limits.font_error, args.min_font),
                     dpi_error=min(Limits.dpi_error, args.min_dpi))  # fmt: skip
     reports: list[Report] = []
-    header: list[str] = []
+    projects: list[dict[str, object]] = []
     try:
         for path in args.paths:
             if path.is_dir() or path.suffix.lower() == ".tex":
-                header_line, rs = _project(path, limits, args.template)
-                header.append(header_line)
+                project, rs = _project(path, limits, args.template)
+                projects.append(project)
                 reports += rs
             elif path.suffix.lower() in FIGURES or path.is_file():
                 if not path.is_file():
                     raise ValueError(f"{path.as_posix()}: no such file")
-                reports.append(check_file(path, args.width, limits=limits))
+                r = check_file(path, args.width, limits=limits)
+                if any(f.message.startswith("not a PDF, PNG, JPEG or SVG") for f in r.findings):
+                    raise ValueError(f"{path.as_posix()}: not a figure (PDF, PNG, JPEG or SVG), nor a LaTeX project")
+                reports.append(r)
             else:
                 raise ValueError(f"{path.as_posix()}: no such file or folder")
     except ValueError as e:
         print(f"fig-check: {e}", file=sys.stderr)
         return 2
     if args.json:
-        print(json.dumps([{**asdict(r), "worst": r.worst} for r in reports], indent=2, ensure_ascii=False))
+        out = {"version": __version__, "limits": asdict(limits), "projects": projects,
+               "figures": [{**asdict(r), "worst": r.worst} for r in reports]}  # fmt: skip
+        print(json.dumps(_rounded(out), indent=2, ensure_ascii=False))
     else:
-        for h in header:
-            print(h)
+        for p in projects:
+            print(f"fig-check: {p['main']}: {p['template']} ({p['how']}): text {p['text_width']:.2f} in, column {p['column_width']:.2f} in")
         for r in reports:
             _print(r)
         bad = sum(1 for r in reports if r.worst != "ok")
@@ -79,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
     return 1 if any(r.worst != "ok" for r in reports) else 0
 
 
-def _project(path: Path, limits: Limits, template_name: str | None) -> tuple[str, list[Report]]:
+def _project(path: Path, limits: Limits, template_name: str | None) -> tuple[dict[str, object], list[Report]]:
     root = path if path.is_dir() else path.parent
     main = path if path.is_file() else main_file(root)
     if main is None or not main.is_file():
@@ -108,8 +126,18 @@ def _project(path: Path, limits: Limits, template_name: str | None) -> tuple[str
         reports.append(check_file(f, u.width, u.height, u.scale, limits, f.relative_to(root.resolve()).as_posix(), where))
     if macro_paths:
         reports.append(Report("(paths built by macros)", main.name, findings=[_macro_note(macro_paths)]))
-    return (f"fig-check: {main.relative_to(root).as_posix() if main.is_relative_to(root) else main.name}: {template.name} ({how}): "
-            f"text {template.text:.2f} in, column {template.column:.2f} in"), reports  # fmt: skip
+    drawn = len(re.findall(r"\\begin\s*\{tikzpicture\}", tex)) + len(re.findall(r"\\includestandalone\b", tex))
+    if drawn:
+        reports.append(Report("(TikZ and pgfplots figures)", main.name, findings=[_drawn_note(drawn)]))
+    name = main.relative_to(root).as_posix() if main.is_relative_to(root) else main.name
+    project = {"main": name, "template": template.name, "how": how, "text_width": template.text, "column_width": template.column}
+    return project, reports
+
+
+def _drawn_note(n: int):  # noqa: ANN202
+    from .check import Finding
+
+    return Finding("read", "info", f"{n} figure(s) drawn by LaTeX (TikZ, pgfplots): their text is set in the paper's font; not checked")
 
 
 def _missing():  # noqa: ANN202
