@@ -22,5 +22,8 @@ uvx --from git+https://github.com/zch6a/fig-check fig-check plot.pdf --width 3.2
   - colours: tell the series apart by more than hue (line style, markers, direct labels, lightness), or use a
     colour-blind-safe palette (Okabe–Ito; matplotlib's `tableau-colorblind10` style);
   - resolution: export at the printed size × 300 dpi, or as a vector file (PDF/SVG) for plots.
+- For a matplotlib figure the user is making, check it before saving, in Python:
+  `from fig_check import check_figure; print(check_figure(fig, width="column", template="icml"))` (needs fig-check
+  installed in that environment: `uv pip install git+https://github.com/zch6a/fig-check`).
 - Exit status 1 means there is something to fix; `--json` gives the reports. A note about paths built by macros means
   those figures were not checked: run it on those files directly with `--width`.

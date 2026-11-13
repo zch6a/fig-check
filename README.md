@@ -45,8 +45,11 @@ there is, 2 when it could not run; `--json` gives the reports.
 - **A LaTeX project** (a folder, or its main `.tex`): every `\includegraphics`, following `\input` and `\include`, at
   the width it prints at: `width=`, `height=`, `scale=`, `\resizebox`, and the line width inside `figure` (the
   column), `figure*` (the text), `wrapfigure`, `subfigure` and `minipage`. The venue's widths come from the style the
-  preamble loads; `--template` names it when it does not.
+  preamble loads, or from the class options (`11pt`, `a4paper`, `twocolumn`) as LaTeX's `article` sets them; then
+  from the preamble's own `geometry` options, `\setlength{\textwidth}` or `\columnsep`. `--template` names the venue
+  when the preamble does not.
 - **Single figures**: `fig-check plot.pdf --width 3.25in`.
+- **A matplotlib figure, before it is saved** (below).
 - **Formats**: PDF (read with the standard library: text, colours, embedded images, form XObjects, compressed and
   object streams), PNG (decoded for its colours), JPEG (its size), SVG. EPS is noted, not read.
 
@@ -58,9 +61,35 @@ there is, 2 when it could not run; `--json` gives the reports.
 | CVPR, ICCV | 6.875 in | 3.28 in | `cvpr.sty`, `iccv.sty` (`\columnsep` 0.3125 in) |
 | ACL, EMNLP, NAACL | 16 cm | 7.7 cm | `acl.sty` (A4, 2.5 cm margins, `\columnsep` 0.6 cm) |
 | AAAI | 7 in | 3.31 in | `aaai2x.sty` (`\columnsep` 0.375 in) |
-| anything else | 345 pt | (one column) | LaTeX's `article` at 10 pt |
+| anything else | 345 pt | (one column) | LaTeX's `article` at 10 pt, letter paper |
 
-Each was read from the style file itself (2026-11-13).
+Each was read from the style file itself (2026-11-13). Widths from `article`'s class options and from `geometry` are
+worked out as `article.cls`, `size1x.clo` and `geometry.sty` do; for 33 preambles (paper sizes, margins, one margin
+alone, `twoside`, `landscape`, two columns, `\setlength`, `\addtolength`) they agree with the widths pdflatex prints,
+to 0.01 pt, and the tests hold those widths.
+
+### In Python: a matplotlib figure
+
+```python
+from fig_check import check_figure
+
+fig, ax = plt.subplots(figsize=(6, 4))
+...
+report = check_figure(fig, width="column", template="icml")  # or width=3.25, "8cm", "0.48\\linewidth", "text"
+print(report)  # as the command prints it
+assert report.worst != "error"  # "ok", "warning" or "error"
+```
+
+```
+figure: 3.25 in wide, at 54% of its size, smallest text 5.4 pt
+  warning: font: text as small as 5.4 pt when printed; 21 of 21 pieces under 7 pt (it is 10.0 pt in the file: printed at 54% of its size)
+  warning: colour: #d62728 and #2ca02c look alike with deuteranopia (ΔE 4.6); with typical vision ΔE 72. Tell them apart by more than hue: line style, markers, labels, lightness
+```
+
+The figure is saved to memory as a PDF and checked like a file; nothing is written to disk. Other keyword arguments
+go to `savefig` (`bbox_inches="tight"`, `dpi=300` for `imshow` images, which matplotlib rasterises at the figure's
+dpi). matplotlib is not a dependency: anything with `savefig(file, format="pdf")` will do. `check_file` and
+`check_bytes` check files and bytes the same way.
 
 ## What it checks
 
@@ -80,8 +109,9 @@ data; the simulation matrices against the authors' published table.
 
 ## Limits
 
-- Widths from a style file the tool does not know, or set in the preamble (`\setlength{\textwidth}`, `geometry`),
-  are not read yet: give `--template`, or check figures with `--width`.
+- Widths from a style file or class the tool does not know (IEEEtran, acmart, revtex, llncs...) are not read: it
+  says so and uses `article`'s; give `--template`, or check figures with `--width`. Widths set in a macro, or by
+  arithmetic beyond `\setlength` and `\addtolength`, are not followed.
 - Paths a macro builds (`\iftoggle{hq}{a}{b}`) are counted, not followed.
 - Text drawn as outlines (paths, not fonts) is not text to it; nor is text inside raster images.
 - Colours are the ones paths and text are drawn in; gradients and patterns are not followed.

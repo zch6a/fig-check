@@ -35,7 +35,7 @@ packages = ["src/fig_check"]
 exclude = ["docs/"]  # images for the GitHub page only
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.10"]
+dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.10", "matplotlib>=3.7"]  # matplotlib: to test check_figure on real figures
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "src"]

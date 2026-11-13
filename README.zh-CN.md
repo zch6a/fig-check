@@ -28,11 +28,14 @@ uvx --from git+https://github.com/zch6a/fig-check fig-check paper/
 ## 读取什么
 
 - **LaTeX 工程**（文件夹或主 `.tex`）：每个 `\includegraphics`，跟随 `\input` 与 `\include`，按印出的宽度计算：`width=`、`height=`、`scale=`、`\resizebox`，
-  以及 `figure`（栏宽）、`figure*`（正文宽）、`wrapfigure`、`subfigure`、`minipage` 里的行宽。会议的宽度取自导言区加载的样式文件；识别不了时用 `--template` 指定。
+  以及 `figure`（栏宽）、`figure*`（正文宽）、`wrapfigure`、`subfigure`、`minipage` 里的行宽。会议的宽度取自导言区加载的样式文件，或按 LaTeX `article` 的规则由文档类选项（`11pt`、`a4paper`、`twocolumn`）算出；
+  再应用导言区自己的 `geometry` 选项、`\setlength{\textwidth}` 或 `\columnsep`。识别不了时用 `--template` 指定。
 - **单张图**：`fig-check plot.pdf --width 3.25in`。
+- **保存之前的 matplotlib 图**：`check_figure(fig, width="column", template="icml")`，返回的报告 `print()` 出来与命令行输出相同；图只在内存里存成 PDF 检查，不写盘，其余关键字参数传给 `savefig`。
 - **格式**：PDF（只用标准库读取：文字、颜色、内嵌图片、表单 XObject、压缩流与对象流）、PNG（解码取颜色）、JPEG（取尺寸）、SVG。EPS 只提示，不读取。
 
 支持的模板（NeurIPS、ICLR、ICML、CVPR/ICCV、ACL/EMNLP/NAACL、AAAI）及其宽度见英文 README 的表格，每一项都是 2026-11-13 从样式文件本身读出的。
+由文档类选项与 `geometry` 算出的宽度按 `article.cls`、`size1x.clo`、`geometry.sty` 的规则计算；33 种导言区写法（纸张、页边距、只给一侧页边距、`twoside`、`landscape`、双栏、`\setlength`、`\addtolength`）与 pdflatex 实际排出的宽度一致（误差 0.01 pt 内），测试里固定了这些宽度。
 
 ## 检查什么
 
@@ -44,7 +47,7 @@ uvx --from git+https://github.com/zch6a/fig-check fig-check paper/
 
 ## 局限
 
-- 不认识的样式文件、或在导言区设置的宽度（`\setlength{\textwidth}`、`geometry`）暂不读取：请用 `--template`，或用 `--width` 单独检查图。
+- 不认识的样式文件或文档类（IEEEtran、acmart、revtex、llncs 等）不读取：会提示并按 `article` 计算；请用 `--template`，或用 `--width` 单独检查图。写在宏里、或用 `\setlength`/`\addtolength` 以外的运算设置的宽度不跟随。
 - 由宏拼出的路径（`\iftoggle{hq}{a}{b}`）只计数，不跟随。
 - 转成轮廓（路径而非字体）的文字不算文字；位图里的文字也量不了。
 - 颜色取路径与文字的颜色；渐变与图案不跟随。

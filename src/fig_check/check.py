@@ -46,18 +46,33 @@ class Report:
         sev = {f.severity for f in self.findings}
         return "error" if "error" in sev else "warning" if "warning" in sev else "ok"
 
+    def __str__(self) -> str:
+        """As fig-check prints it: a line for the figure, then its errors and warnings, then notes."""
+        size = f"{self.printed:.2f} in wide" if self.printed is not None else "size unknown"
+        scale = f", at {self.scale:.0%} of its size" if self.scale is not None and abs(self.scale - 1) > 0.005 else ""
+        smallest = f", smallest text {self.smallest:.1f} pt" if self.smallest is not None else ""
+        lines = [f"{self.figure}{f'  ({self.where})' if self.where else ''}: {size}{scale}{smallest}"]
+        lines += [f"  {f.severity}: {f.rule}: {f.message}" for f in self.findings if f.severity != "info"]
+        lines += [f"  note: {f.message}" for f in self.findings if f.severity == "info"]
+        return "\n".join(lines)
+
 
 def check_file(path: Path, width: float | None = None, height: float | None = None, scale: float | None = None,
                limits: Limits | None = None, name: str | None = None, where: str = "") -> Report:  # fmt: skip
     """One figure file, printed `width` inches wide (or `height` tall, or at `scale`; else at its own size)."""
-    limits = limits or Limits()
-    report = Report(name or path.as_posix(), where)
     try:
         data = path.read_bytes()
     except OSError as e:
-        report.findings.append(Finding("read", "error", f"cannot be read ({e.strerror or e})"))
-        return report
-    kind = _kind(path, data)
+        return Report(name or path.as_posix(), where, findings=[Finding("read", "error", f"cannot be read ({e.strerror or e})")])
+    return check_bytes(data, name or path.as_posix(), width, height, scale, limits, where, path.suffix)
+
+
+def check_bytes(data: bytes, name: str, width: float | None = None, height: float | None = None, scale: float | None = None,
+                limits: Limits | None = None, where: str = "", suffix: str = "") -> Report:  # fmt: skip
+    """One figure's bytes (PDF, PNG, JPEG or SVG, told by their content; `suffix` ".svg" helps an SVG without a header)."""
+    limits = limits or Limits()
+    report = Report(name, where)
+    kind = _kind(Path("figure" + suffix), data)
     try:
         if kind == "pdf":
             _vector(report, read_figure(data), width, height, scale, limits, "pdf")

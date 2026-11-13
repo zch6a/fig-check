@@ -18,7 +18,7 @@ from pathlib import Path
 
 from . import __version__
 from .check import Limits, Report, check_file
-from .latex import TEMPLATES, detect, dimension, expand, find, graphicspath, main_file, uses
+from .latex import TEMPLATES, dimension, expand, find, graphicspath, layout, main_file, uses
 
 FIGURES = {".pdf", ".png", ".jpg", ".jpeg", ".svg", ".eps"}
 
@@ -38,7 +38,8 @@ def main(argv: list[str] | None = None) -> int:
                                  epilog="exit status: 0 nothing to fix, 1 warnings or errors found, 2 it could not run")  # fmt: skip
     ap.add_argument("paths", nargs="*", type=Path, help="a LaTeX project folder or main .tex file, or figure files")
     ap.add_argument("--width", type=_width, help="the printed width of figure files given directly (default: their own size)")
-    ap.add_argument("--template", choices=sorted(TEMPLATES), help="the venue's widths, when the preamble does not tell")
+    ap.add_argument("--template", choices=sorted(TEMPLATES),
+                    help="the venue's widths, when the preamble does not tell (its \\setlength and geometry still apply)")  # fmt: skip
     ap.add_argument("--min-font", type=float, default=Limits.font, metavar="PT", help=f"warn below this printed size (default {Limits.font:g} pt)")
     ap.add_argument("--min-dpi", type=float, default=Limits.dpi, metavar="DPI", help=f"warn below this resolution (default {Limits.dpi:g})")
     ap.add_argument("--json", action="store_true", help="the reports as JSON")
@@ -84,7 +85,7 @@ def _project(path: Path, limits: Limits, template_name: str | None) -> tuple[str
     if main is None or not main.is_file():
         raise ValueError(f"{path.as_posix()}: no main .tex file (one with \\documentclass and \\begin{{document}})")
     tex = expand(main, root)
-    template = TEMPLATES[template_name] if template_name else detect(tex)
+    template, how = layout(tex, TEMPLATES[template_name] if template_name else None)
     dirs = graphicspath(tex)
     reports = []
     seen: set[tuple[str, float | None]] = set()
@@ -105,7 +106,6 @@ def _project(path: Path, limits: Limits, template_name: str | None) -> tuple[str
             continue
         seen.add(key)
         reports.append(check_file(f, u.width, u.height, u.scale, limits, f.relative_to(root.resolve()).as_posix(), where))
-    how = "detected" if not template_name else "given"
     if macro_paths:
         reports.append(Report("(paths built by macros)", main.name, findings=[_macro_note(macro_paths)]))
     return (f"fig-check: {main.relative_to(root).as_posix() if main.is_relative_to(root) else main.name}: {template.name} ({how}): "
@@ -127,16 +127,7 @@ def _macro_note(n: int):  # noqa: ANN202
 
 
 def _print(r: Report) -> None:
-    size = f"{r.printed:.2f} in wide" if r.printed is not None else "size unknown"
-    scale = f", at {r.scale:.0%} of its size" if r.scale is not None and abs(r.scale - 1) > 0.005 else ""
-    smallest = f", smallest text {r.smallest:.1f} pt" if r.smallest is not None else ""
-    print(f"{r.figure}{f'  ({r.where})' if r.where else ''}: {size}{scale}{smallest}")
-    for f in r.findings:
-        if f.severity != "info":
-            print(f"  {f.severity}: {f.rule}: {f.message}")
-    for f in r.findings:
-        if f.severity == "info":
-            print(f"  note: {f.message}")
+    print(r)
 
 
 if __name__ == "__main__":

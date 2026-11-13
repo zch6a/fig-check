@@ -4,9 +4,10 @@ figure*, wrapfigure, subfigure, subfloat and minipage."""
 
 from __future__ import annotations
 
+import math
 import posixpath
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 IN = 72.27  # TeX points per inch (pt); PDF points are bp, 72 per inch
@@ -61,6 +62,204 @@ def detect(tex: str) -> Template:
         if any(re.fullmatch(pattern, p) for p in packages):
             return TEMPLATES[key]
     return TEMPLATES["article"]
+
+
+# paper widths and heights in inches: article.cls's paper options, and the same names in geometry
+PAPERS = {
+    "letterpaper": (8.5, 11.0),
+    "a4paper": (210 / 25.4, 297 / 25.4),
+    "a5paper": (148 / 25.4, 210 / 25.4),
+    "b5paper": (176 / 25.4, 250 / 25.4),
+    "legalpaper": (8.5, 14.0),
+    "executivepaper": (7.25, 10.5),
+}
+# article.cls and report.cls (size10.clo, size11.clo, size12.clo, read on 2026-11-13): \textwidth is the smaller of
+# \paperwidth - 2in and 345pt, 360pt, 390pt (twice that with twocolumn), rounded down to whole points; \columnsep 10pt
+CLASS_WIDTH = {"10pt": 345.0, "11pt": 360.0, "12pt": 390.0}
+ARTICLE_COLUMNSEP = 10 / IN
+KNOWN_CLASSES = ("article", "report")
+_NUMBER = r"[+-]?(?:\d+\.?\d*|\.\d+)"
+
+
+def length(expr: str, paper: float, text: float, column: float) -> float | None:
+    r"""A length in a preamble, in inches: `6.5in`, `5.5 true in`, `-2cm`, `0.8\paperwidth`, `\textwidth`.
+
+    >>> length("5.5 true in", 8.5, 5, 5), length("0.5\\paperwidth", 8.5, 5, 5), length("-72.27pt", 8.5, 5, 5)
+    (5.5, 4.25, -1.0)
+    """
+    e = re.sub(r"\s+|true", "", expr)
+    m = re.fullmatch(rf"({_NUMBER})?\\(paperwidth|textwidth|columnwidth|linewidth|hsize)", e)
+    if m:
+        base = {"paperwidth": paper, "textwidth": text, "hsize": text}.get(m.group(2), column)
+        return (float(m.group(1)) if m.group(1) not in (None, "+", "-") else -1.0 if m.group(1) == "-" else 1.0) * base
+    m = re.fullmatch(rf"({_NUMBER})(in|cm|mm|pt|bp|pc)", e)
+    return float(m.group(1)) * UNITS_IN[m.group(2)] if m else None
+
+
+def _options(text: str) -> list[tuple[str, str]]:
+    """key=value options split at top-level commas: `margin=1in, text={6in,9in}, a4paper`."""
+    out, depth, cur = [], 0, ""
+    for c in text + ",":
+        if c == "," and depth == 0:
+            k, _, v = cur.partition("=")
+            if k.strip():
+                out.append((k.strip(), v.strip()))
+            cur = ""
+            continue
+        depth += (c == "{") - (c == "}")
+        cur += c
+    return out
+
+
+def _first(value: str) -> str:
+    """The first of `{a,b}` (geometry's width,height pairs), or the value."""
+    v = value.strip()
+    if v.startswith("{") and v.endswith("}"):
+        v = v[1:-1]
+    return v.split(",")[0].strip()
+
+
+def _pair(value: str) -> tuple[str, str]:
+    """`{a,b}` as (a, b); a single value for both."""
+    v = value.strip()
+    if v.startswith("{") and v.endswith("}"):
+        v = v[1:-1]
+    parts = [x.strip() for x in v.split(",")]
+    return (parts[0], parts[1] if len(parts) > 1 else parts[0])
+
+
+def layout(tex: str, template: Template | None = None) -> tuple[Template, str]:
+    r"""The widths the paper is set at, and how they were found: the template given, or the style the preamble loads, or
+    LaTeX's article/report widths for the class options; then the preamble's own settings, in order: geometry's options
+    (\usepackage[...]{geometry}, \geometry{...}), \setlength, \addtolength or an assignment of \textwidth and
+    \columnsep.
+
+    >>> t, how = layout(r"\documentclass[11pt,twocolumn]{article}")
+    >>> t.name, round(t.text * IN), round(t.column * IN, 1), how
+    ('article, 11pt letter, two columns', 469, 229.5, 'from the class options')
+    >>> t, how = layout(r"\documentclass{article}\usepackage[margin=1in]{geometry}")
+    >>> round(t.text, 2), how
+    (6.5, 'from the class options; the preamble sets: geometry margin=1in')
+    >>> t, how = layout(r"\documentclass{article}\usepackage{icml2025}\setlength{\textwidth}{7in}")
+    >>> t.name, round(t.text, 2), round(t.column, 3)
+    ('ICML', 7.0, 3.375)
+    """
+    pre = tex.split("\\begin{document}")[0]
+    cls = re.search(r"\\documentclass\s*(?:\[([^\]]*)\])?\s*\{([^{}]*)\}", pre)
+    class_options = [k for k, _ in _options(cls.group(1) or "")] if cls else []
+    class_name = cls.group(2).strip() if cls else "article"
+    paper = PAPERS["letterpaper"]
+    for o in class_options:
+        if o in PAPERS:
+            paper = PAPERS[o]
+    landscape = "landscape" in class_options
+    paper_w = paper[landscape]
+    how: list[str] = []
+    if template is not None:
+        how.append("given")
+    else:
+        template = detect(tex)
+        if template is not TEMPLATES["article"]:
+            how.append("detected")
+        else:
+            size = next((o for o in class_options if o in CLASS_WIDTH), "10pt")
+            paper_name = next((o for o in class_options if o in PAPERS), "letterpaper")
+            two = "twocolumn" in class_options
+            width = min(paper_w * IN - 2 * IN, CLASS_WIDTH[size] * (2 if two else 1))
+            text = math.floor(width + 1e-9) / IN
+            if (size, paper_name, two, landscape) != ("10pt", "letterpaper", False, False):
+                template = Template(
+                    f"article, {size} {paper_name.removesuffix('paper')}{' landscape' if landscape else ''}{', two columns' if two else ''}",
+                    text,
+                    (text - ARTICLE_COLUMNSEP) / 2 if two else text,
+                    "article.cls, size1x.clo",
+                )
+            how.append("from the class options")
+            if class_name not in KNOWN_CLASSES:
+                how[-1] = f"the class {class_name} is not one fig-check knows: LaTeX's article widths, give --template if wrong"
+    two_column = template.column < template.text - 1e-6
+    sep = template.text - 2 * template.column if two_column else ARTICLE_COLUMNSEP
+    text = template.text
+    set_by: list[str] = []
+    geo: dict[str, str] = {}  # geometry's options so far: each \geometry adds to them
+    events: list[tuple[int, str, str, str]] = []
+    for m in re.finditer(r"\\usepackage\s*(?:\[([^\]]*)\])?\s*\{([^{}]*)\}", pre):
+        if "geometry" in [x.strip() for x in m.group(2).split(",")]:  # it sets the layout when loaded, options or not
+            events.append((m.start(), "geometry", m.group(1) or "", ""))
+    for m in re.finditer(r"\\geometry\s*\{", pre):
+        body, _ = _braced(pre, m.end() - 1)
+        events.append((m.start(), "geometry", body, ""))
+    for m in re.finditer(r"\\(setlength|addtolength)\s*\{?\s*\\(textwidth|columnsep)\s*\}?\s*\{([^{}]*)\}", pre):
+        events.append((m.start(), m.group(1), m.group(2), m.group(3)))
+    for m in re.finditer(rf"\\(textwidth|columnsep)(?![A-Za-z])\s*=?\s*((?:{_NUMBER})\s*(?:true\s*)?(?:in|cm|mm|pt|bp|pc)(?![A-Za-z]))", pre):
+        events.append((m.start(), "setlength", m.group(1), m.group(2)))
+    for _, kind, what, value in sorted(events):
+        column = (text - sep) / 2 if two_column else text
+        if kind == "geometry":
+            opts = _options(what)
+            keys = dict(opts)
+            if "pass" in keys:  # geometry keeps the class's layout
+                continue
+            for k, v in opts:
+                if k in PAPERS or (k == "paper" and v in PAPERS):
+                    paper = PAPERS[k if k in PAPERS else v]
+                elif k == "landscape":
+                    landscape = v in ("", "true")
+                elif k == "portrait":
+                    landscape = v not in ("", "true")
+                elif k == "paperwidth":
+                    paper = (length(v, paper_w, text, column) or paper[0], paper[1])
+                elif k in ("papersize", "layoutsize"):
+                    w, h = _pair(v)
+                    paper = (length(w, paper_w, text, column) or paper[0], length(h, paper_w, text, column) or paper[1])
+            paper_w = paper[landscape]
+            if "twocolumn" in keys:
+                two_column = keys["twocolumn"] in ("", "true")
+            if "onecolumn" in keys:
+                two_column = keys["onecolumn"] not in ("", "true")
+            if "columnsep" in keys:
+                sep = length(keys["columnsep"], paper_w, text, column) or sep
+            for k, v in opts:
+                if k == "margin":
+                    geo["left"] = geo["right"] = _first(v)
+                elif k == "hmargin":
+                    geo["left"], geo["right"] = _pair(v)
+                elif k in ("left", "lmargin", "inner"):
+                    geo["left"] = v
+                elif k in ("right", "rmargin", "outer"):
+                    geo["right"] = v
+                elif k in ("width", "textwidth", "text", "total", "body"):
+                    geo["body"] = _first(v)
+                elif k in ("hscale", "scale") and re.fullmatch(_NUMBER, _first(v)):
+                    geo["body"] = _first(v) + "\\paperwidth"
+                elif k == "reset":
+                    geo.clear()
+            given = length(geo["body"], paper_w, text, column) if "body" in geo else None
+            lw = length(geo["left"], paper_w, text, column) if "left" in geo else None
+            rw = length(geo["right"], paper_w, text, column) if "right" in geo else None
+            if given is not None:
+                text = given
+            elif lw is not None or rw is not None:
+                # one margin alone: the other is the first share of the margins around geometry's default body (0.7
+                # of the paper's width), split 1:1, or 2:3 with twoside (as pdflatex lays it out)
+                other = 0.3 * paper_w * (2 / 5 if "twoside" in class_options or "twoside" in keys else 1 / 2)
+                text = paper_w - (lw if lw is not None else other) - (rw if rw is not None else other)
+            else:  # geometry's default body
+                text = 0.7 * paper_w
+            set_by.append("geometry " + ", ".join(f"{k}={v}" if v else k for k, v in opts) if opts else "geometry (its defaults)")
+        else:
+            amount = length(value, paper_w, text, column)
+            if amount is None:
+                continue
+            if what == "textwidth":
+                text = text + amount if kind == "addtolength" else amount
+            else:
+                sep = sep + amount if kind == "addtolength" else amount
+            set_by.append(f"\\{kind}{{\\{what}}}{{{value.strip()}}}")
+    if set_by:
+        how.append("the preamble sets: " + "; ".join(set_by))
+        template = replace(template, text=text, column=(text - sep) / 2 if two_column else text)
+    return template, "; ".join(how)
 
 
 @dataclass

@@ -54,3 +54,44 @@ the rest byte for byte. Also: one commit went in with `ruff format --check` fail
 
 Next: polishing round 1 (widths set in the preamble, `\setlength{\textwidth}` and `geometry`; a matplotlib API to
 check a figure before saving it; then the pgfplots exporter).
+
+### 2026-11-13 — polishing round 1
+
+**Widths set in the preamble** (the gap the first version's README named): `layout()` works out the text and column
+width as LaTeX does, in order: the template given, or the style the preamble loads, or `article`'s widths from the
+class options; then the preamble's `geometry` options (package options and `\geometry{}`, which add to each other),
+`\setlength`/`\addtolength`/assignments of `\textwidth` and `\columnsep`. The header says what set them.
+
+- Read from the files themselves (MiKTeX's `article.cls`, `size10/11/12.clo`, `geometry.sty`): `\textwidth` is the
+  smaller of `\paperwidth`−2in and 345/360/390 pt (twice that with `twocolumn`), rounded down to whole points;
+  `\columnsep` 10 pt; geometry lays the page out when loaded, options or not (0.7 of the paper's width by default),
+  reads the class options, and with one margin alone gives the other the first share of the default margins (1:1,
+  2:3 with `twoside`).
+- **Found by checking against pdflatex**: the first version took `\documentclass[twocolumn]{article}` as one 345 pt
+  column; LaTeX sets 469 pt text and 229.5 pt columns. Fixed with the rest.
+- Checked against pdflatex itself: 33 preambles compiled, each one's `\textwidth` and `\columnwidth` printed; all
+  agree to 0.01 pt. Two disagreed on the first try (one margin alone, `landscape` as a geometry option) and one on
+  the second (`twoside`); fixed from geometry's source. The widths pdflatex printed are the test table, so the tests
+  need no TeX.
+- A class it does not know (revtex, IEEEtran...) is said, with `--template` suggested; geometry's `pass` is honoured;
+  settings after `\begin{document}` or inside macro definitions are not the preamble's.
+
+**A matplotlib API**: `check_figure(fig, width="column", template="icml")` saves the figure to memory as a PDF and
+checks it like a file (nothing written to disk; matplotlib is not a dependency, anything with `savefig` will do).
+Widths as inches, TeX lengths, or the template's "column" and "text"; other keyword arguments go to `savefig`.
+`check_file`, `check_bytes`, `Report` and `Limits` are exported; a report prints as the command prints it (the CLI
+uses the same `__str__`).
+
+- Tried on real matplotlib figures (3.10/3.11, Type 3 and TrueType fonts): a 6×4 in figure at ICML's column width has
+  5.4 pt labels and matplotlib's default red–green pair (ΔE 4.6 with deuteranopia); a 3.25 in one with 7–8 pt labels,
+  markers and Okabe–Ito colours passes; an `imshow` image is rasterised at the figure's dpi (100 pixels per inch at
+  that size), so the README says to pass `dpi=300`. The README's sample output is that run's.
+- matplotlib is in the dev group so CI runs the real-figure test; the lock's sources are pypi.org.
+
+**Docs**: README (both languages), CHANGELOG, the skill. **Code**: one `Report.__str__` replaces the CLI's printer;
+`check_bytes` split from `check_file`. ruff now formats README code blocks: done.
+
+Tests: 117 (33 from pdflatex's widths, 10 for `check_figure`). ruff, ruff format, mypy clean.
+
+Next: polishing round 2 (the pgfplots exporter for matplotlib, the tikzplotlib successor; IEEEtran and acmart widths;
+a social card).
