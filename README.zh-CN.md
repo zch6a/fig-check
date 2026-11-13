@@ -31,6 +31,10 @@ uvx --from git+https://github.com/zch6a/fig-check fig-check paper/
   以及 `figure`（栏宽）、`figure*`（正文宽）、`wrapfigure`、`subfigure`、`minipage` 里的行宽。会议的宽度取自导言区加载的样式文件，或按 LaTeX `article` 的规则由文档类选项（`11pt`、`a4paper`、`twocolumn`）算出；
   再应用导言区自己的 `geometry` 选项、`\setlength{\textwidth}` 或 `\columnsep`。识别不了时用 `--template` 指定。
 - **单张图**：`fig-check plot.pdf --width 3.25in`。
+- **让 LaTeX 来画**：`save_pgfplots(fig, "figures/loss.tex")` 把 matplotlib 图写成 pgfplots 代码，论文里 `\input` 它（导言区加 `\usepackage{pgfplots}`），
+  LaTeX 按印出的宽度、用论文自己的字体和字号画图，字就不会随图缩小。导出折线、散点、柱、`fill_between`、误差棒、文字、坐标轴标签、标题、范围、对数轴、刻度、网格、图例；
+  不能导出的（图像、色条、3D、整图文字）在返回的 notes 里列出，也写在文件开头的注释里。
+- **会议之外的文档类**：IEEEtran、acmart（sigconf 等）、llncs、elsarticle、revtex4-2 的宽度取自 pdflatex 用这些类与选项实际排出的结果。
 - **保存之前的 matplotlib 图**：`check_figure(fig, width="column", template="icml")`，返回的报告 `print()` 出来与命令行输出相同；图只在内存里存成 PDF 检查，不写盘，其余关键字参数传给 `savefig`。
 - **格式**：PDF（只用标准库读取：文字、颜色、内嵌图片、表单 XObject、压缩流与对象流）、PNG（解码取颜色）、JPEG（取尺寸）、SVG。EPS 只提示，不读取。
 
@@ -47,7 +51,7 @@ uvx --from git+https://github.com/zch6a/fig-check fig-check paper/
 
 ## 局限
 
-- 不认识的样式文件或文档类（IEEEtran、acmart、revtex、llncs 等）不读取：会提示并按 `article` 计算；请用 `--template`，或用 `--width` 单独检查图。写在宏里、或用 `\setlength`/`\addtolength` 以外的运算设置的宽度不跟随。
+- 不认识的样式文件或文档类（如 memoir、未测量的 acmart 格式）不读取：会提示并按 `article` 计算；请用 `--template`，或用 `--width` 单独检查图。写在宏里、或用 `\setlength`/`\addtolength` 以外的运算设置的宽度不跟随。
 - 由宏拼出的路径（`\iftoggle{hq}{a}{b}`）只计数，不跟随。
 - 转成轮廓（路径而非字体）的文字不算文字；位图里的文字也量不了。
 - 颜色取路径与文字的颜色；渐变与图案不跟随。

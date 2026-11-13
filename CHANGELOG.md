@@ -14,4 +14,8 @@ First release.
   (checked against pdflatex for 33 preambles).
 - `check_figure(fig, width="column", template="icml")`: a matplotlib figure checked in memory before it is saved;
   `check_file` and `check_bytes` for files and bytes; a report prints as the command prints it.
+- The widths of `IEEEtran`, `acmart`, `llncs`, `elsarticle` and `revtex4-2` for their options, as pdflatex sets them;
+  `--template ieee`, `acm`, `lncs`.
+- `save_pgfplots(fig, "fig.tex")` / `to_pgfplots(fig)`: a matplotlib figure as pgfplots code that LaTeX draws at its
+  printed width in the paper's font, with notes on what it could not export.
 - Reads PDF, PNG, JPEG and SVG with the standard library only.

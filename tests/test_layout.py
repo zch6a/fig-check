@@ -46,6 +46,48 @@ LATEX = [
 ]
 
 
+# what pdflatex printed for these classes and options (acmart's after \maketitle, where its columns begin)
+CLASSES = [
+    ("IEEEtran", "", 516.0, 252.0),
+    ("IEEEtran", "conference,a4paper", 516.0, 252.0),
+    ("IEEEtran", "journal", 516.0, 252.0),
+    ("IEEEtran", "onecolumn", 516.0, 516.0),
+    ("IEEEtran", "draftcls,onecolumn", 469.75502, 469.75502),
+    ("IEEEtran", "10pt,journal,compsoc", 517.935, 252.94499),
+    ("IEEEtran", "conference,compsoc", 505.89, 243.91125),
+    ("IEEEtran", "peerreview", 516.0, 516.0),
+    ("acmart", "", 430.00462, 430.00462),
+    ("acmart", "sigconf", 506.295, 241.14749),
+    ("acmart", "sigconf,review", 506.295, 241.14749),
+    ("acmart", "acmsmall", 395.8225, 395.8225),
+    ("acmart", "acmlarge", 452.295, 452.295),
+    ("acmart", "acmtog", 510.295, 243.14749),
+    ("acmart", "sigplan", 505.89, 240.94499),
+    ("llncs", "", 347.12354, 347.12354),
+    ("elsarticle", "preprint", 345.0, 345.0),
+    ("elsarticle", "1p", 384.0, 384.0),
+    ("elsarticle", "3p", 468.0, 468.0),
+    ("elsarticle", "3p,twocolumn", 468.0, 222.0),
+    ("elsarticle", "5p", 522.0, 252.0),
+    ("revtex4-2", "", 510.0, 510.0),
+    ("revtex4-2", "aps,prl,twocolumn", 510.0, 246.0),
+    ("revtex4-2", "aps,pra,reprint", 510.0, 246.0),
+    ("revtex4-2", "aps,preprint", 468.0, 468.0),
+]
+
+
+@pytest.mark.parametrize(("cls", "options", "textwidth", "columnwidth"), CLASSES)
+def test_a_class_s_widths_are_pdflatexs(cls: str, options: str, textwidth: float, columnwidth: float) -> None:
+    t, how = layout(f"\\documentclass[{options}]{{{cls}}}\\begin{{document}}")
+    assert (t.text * IN, t.column * IN, how) == (pytest.approx(textwidth, abs=0.01), pytest.approx(columnwidth, abs=0.01), "from the class")
+
+
+def test_geometry_applies_over_a_class() -> None:
+    t, how = layout(r"\documentclass[conference]{IEEEtran}\usepackage[margin=0.75in]{geometry}")
+    assert round(t.text, 3) == 7.0 and round(t.column * IN, 2) == round((7 * IN - (516 - 2 * 252)) / 2, 2)
+    assert how == "from the class; the preamble sets: geometry margin=0.75in"
+
+
 @pytest.mark.parametrize(("preamble", "textwidth", "columnwidth"), LATEX)
 def test_the_widths_are_pdflatexs(preamble: str, textwidth: float, columnwidth: float) -> None:
     t, _ = layout(preamble + "\\begin{document}")
@@ -72,9 +114,11 @@ def test_geometry_s_pass_option_keeps_the_class_s_layout() -> None:
 
 
 def test_an_unknown_class_says_so() -> None:
-    t, how = layout(r"\documentclass{revtex4-2}")
+    t, how = layout(r"\documentclass{memoir}")
     assert t == TEMPLATES["article"]
-    assert "revtex4-2 is not one fig-check knows" in how and "--template" in how
+    assert "memoir (with these options) is not one fig-check knows" in how and "--template" in how
+    t, how = layout(r"\documentclass[acmengage]{acmart}")
+    assert t == TEMPLATES["article"] and "acmart" in how
 
 
 def test_the_header_names_what_set_the_widths(tmp_path, capsys) -> None:  # noqa: ANN001

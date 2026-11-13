@@ -61,9 +61,14 @@ there is, 2 when it could not run; `--json` gives the reports.
 | CVPR, ICCV | 6.875 in | 3.28 in | `cvpr.sty`, `iccv.sty` (`\columnsep` 0.3125 in) |
 | ACL, EMNLP, NAACL | 16 cm | 7.7 cm | `acl.sty` (A4, 2.5 cm margins, `\columnsep` 0.6 cm) |
 | AAAI | 7 in | 3.31 in | `aaai2x.sty` (`\columnsep` 0.375 in) |
+| IEEE (`IEEEtran`) | 516 pt | 252 pt | the class; `compsoc`, `onecolumn`, `peerreview`, `draftcls` too |
+| ACM (`acmart`) | 506.3 pt | 241.1 pt | `sigconf`; `sigplan`, `acmtog`, `acmsmall`, `acmlarge`, `manuscript` too |
+| Springer LNCS (`llncs`) | 347.1 pt | (one column) | the class |
+| Elsevier (`elsarticle`), APS (`revtex4-2`) | by option | by option | `preprint`, `1p`, `3p`, `5p`; `preprint`, `twocolumn`, `reprint` |
 | anything else | 345 pt | (one column) | LaTeX's `article` at 10 pt, letter paper |
 
-Each was read from the style file itself (2026-11-13). Widths from `article`'s class options and from `geometry` are
+Each style's widths were read from the style file itself; each class's are what pdflatex sets with that class and
+those options (MiKTeX's class files, 2026-11-13; `acmart`'s after `\maketitle`, where its two columns begin). Widths from `article`'s class options and from `geometry` are
 worked out as `article.cls`, `size1x.clo` and `geometry.sty` do; for 33 preambles (paper sizes, margins, one margin
 alone, `twoside`, `landscape`, two columns, `\setlength`, `\addtolength`) they agree with the widths pdflatex prints,
 to 0.01 pt, and the tests hold those widths.
@@ -91,6 +96,29 @@ go to `savefig` (`bbox_inches="tight"`, `dpi=300` for `imshow` images, which mat
 dpi). matplotlib is not a dependency: anything with `savefig(file, format="pdf")` will do. `check_file` and
 `check_bytes` check files and bytes the same way.
 
+### Or let LaTeX draw it: pgfplots
+
+The surest fix for small text is not to shrink the figure at all. `save_pgfplots` writes a matplotlib figure as
+pgfplots code, which LaTeX draws at the width it prints at, with the paper's own font at the paper's own size:
+
+```python
+from fig_check import save_pgfplots
+
+notes = save_pgfplots(fig, "figures/loss.tex")  # width=r"\linewidth" by default; "3.25in", r"\textwidth"...
+```
+
+```latex
+\usepackage{pgfplots}\pgfplotsset{compat=1.18}   % in the preamble
+\begin{figure}\centering\input{figures/loss.tex}\caption{...}\end{figure}
+```
+
+The axes sit where matplotlib put them. Exported: lines (colour, width, dashes, markers), scatter points, bars and
+other rectangles, `fill_between`, error bars, text, axis labels, titles, limits, log scales, ticks and their labels,
+grids, legends. Labels are escaped for LaTeX, with `$...$` maths kept. What is not exported (images, colour bars, 3D
+axes, figure-level text) is returned in `notes` and written as comments at the top of the file: for those, save a PDF
+and check it. It fills the role tikzplotlib did, for the parts of a figure papers mostly have; the code it writes was
+compiled with pdflatex and compared with the matplotlib figure.
+
 ## What it checks
 
 - **Text size when printed**: every piece of text in the figure, at its drawn size times the figure's scale in the
@@ -109,8 +137,8 @@ data; the simulation matrices against the authors' published table.
 
 ## Limits
 
-- Widths from a style file or class the tool does not know (IEEEtran, acmart, revtex, llncs...) are not read: it
-  says so and uses `article`'s; give `--template`, or check figures with `--width`. Widths set in a macro, or by
+- Widths from a style file or class the tool does not know (memoir, an acmart format not measured...) are not
+  read: it says so and uses `article`'s; give `--template`, or check figures with `--width`. Widths set in a macro, or by
   arithmetic beyond `\setlength` and `\addtolength`, are not followed.
 - Paths a macro builds (`\iftoggle{hq}{a}{b}`) are counted, not followed.
 - Text drawn as outlines (paths, not fonts) is not text to it; nor is text inside raster images.

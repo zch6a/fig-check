@@ -95,3 +95,33 @@ Tests: 117 (33 from pdflatex's widths, 10 for `check_figure`). ruff, ruff format
 
 Next: polishing round 2 (the pgfplots exporter for matplotlib, the tikzplotlib successor; IEEEtran and acmart widths;
 a social card).
+### 2026-11-13 — polishing round 2
+
+**Classes**: `IEEEtran`, `acmart`, `llncs`, `elsarticle` and `revtex4-2` were "not known" (article's widths, with a
+note). Their widths depend on options, and the class files compute them in many steps, so they were measured: each
+class compiled with pdflatex for its main options (38 runs), `\textwidth` and `\columnwidth` printed, and the table
+holds those numbers. IEEEtran: 516/252 pt for 9–12pt, letter or A4, conference, journal, technote; `compsoc`,
+`onecolumn`, `peerreview` and `draftcls` differ and are listed. **Found while measuring**: acmart reports one column
+at `\begin{document}` and turns two columns on at `\maketitle`; measured there (sigconf 241.1 pt, not 506.3). An acmart
+format not measured is not guessed. `--template ieee`, `acm`, `lncs` added. Geometry over IEEEtran checked against
+pdflatex (505.89 / 246.94 pt). Tests: the 25 measured cases.
+
+**pgfplots exporter** (`save_pgfplots`, `to_pgfplots`), the tikzplotlib successor in the plan: the fix for small text
+that does not shrink the figure at all. The axes sit where matplotlib put them, as fractions of `\linewidth` (or a
+width given); lines, markers, scatter, bars and rectangles, `fill_between`, error bars, text (data or axes
+coordinates), labels, titles, limits, log scales, ticks with their labels, grids, legends (unlabelled plots marked
+`forget plot` so entries stay matched). What it cannot export is returned and written as comments.
+
+- Compiled with pdflatex and pgfplots 1.18 in a two-column paper, rendered and compared with the matplotlib figures.
+  Two failures on the way: lengths in a macro (`0.67\fcw` is not a length when `\fcw` holds `252pt`: products written
+  with `*` for pgfmath), and matplotlib's log tick labels (`$\mathdefault{10^{1}}$`, undefined in LaTeX: unwrapped).
+  The rendered result matched the figures (an `imshow` in the sample had reset its axes' limits, as matplotlib does;
+  the sample was at fault, not the export).
+- Labels are escaped for LaTeX outside `$...$`; maths is passed through (the user's own figure).
+- Writes only the file it is given. Tests check the code's structure with real matplotlib figures (no TeX needed).
+
+**Docs**: README (both languages: the classes in the widths table, a pgfplots section), CHANGELOG, the skill.
+
+Tests: 158 (+2 skipped doctests of examples needing a figure). ruff, ruff format, mypy clean.
+
+Next: polishing round 3 (a social card; a look at real papers' figures again with the new widths; review pass).

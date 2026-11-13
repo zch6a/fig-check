@@ -35,7 +35,63 @@ TEMPLATES = {
     "acl": Template("ACL/EMNLP/NAACL", 16 / 2.54, (16 - 0.6) / 2 / 2.54, "acl.sty"),
     "aaai": Template("AAAI", 7.0, (7.0 - 0.375) / 2, "aaai2x.sty"),
     "article": Template("article, 10pt letter (LaTeX's default)", 345 / IN, 345 / IN, "article.cls, size10.clo"),
+    "ieee": Template("IEEEtran", 516 / IN, 252 / IN, "IEEEtran.cls"),
+    "acm": Template("acmart sigconf", 506.295 / IN, 241.14749 / IN, "acmart.cls"),
+    "lncs": Template("llncs", 347.12354 / IN, 347.12354 / IN, "llncs.cls"),
 }
+# classes whose widths depend on their options: (class, options it needs, name, \textwidth pt, \columnwidth pt), the
+# first match wins. Each is what pdflatex printed for that class and those options (MiKTeX's IEEEtran.cls 1.8b,
+# acmart.cls, llncs.cls, elsarticle.cls, revtex4-2.cls on 2026-11-13; acmart's after \maketitle, where it turns two
+# columns on). IEEEtran's widths are the same for 9-12pt, letter or A4, conference, journal and technote.
+CLASSES: list[tuple[str, frozenset[str], str, float, float]] = [
+    (cls, frozenset(need.split()), name, text, column)
+    for cls, need, name, text, column in [
+        ("IEEEtran", "draftcls onecolumn", "IEEEtran, draft, one column", 469.75502, 469.75502),
+        ("IEEEtran", "onecolumn", "IEEEtran, one column", 516.0, 516.0),
+        ("IEEEtran", "peerreview", "IEEEtran, peer review", 516.0, 516.0),
+        ("IEEEtran", "conference compsoc", "IEEEtran, Computer Society conference", 505.89, 243.91125),
+        ("IEEEtran", "compsoc", "IEEEtran, Computer Society journal", 517.935, 252.94499),
+        ("IEEEtran", "", "IEEEtran", 516.0, 252.0),
+        ("acmart", "sigconf", "acmart sigconf", 506.295, 241.14749),
+        ("acmart", "sigchi", "acmart sigchi", 506.295, 241.14749),
+        ("acmart", "sigplan", "acmart sigplan", 505.89, 240.94499),
+        ("acmart", "acmtog", "acmart acmtog", 510.295, 243.14749),
+        ("acmart", "acmsmall", "acmart acmsmall", 395.8225, 395.8225),
+        ("acmart", "acmlarge", "acmart acmlarge", 452.295, 452.295),
+        ("acmart", "", "acmart manuscript", 430.00462, 430.00462),
+        ("llncs", "", "llncs (Springer LNCS)", 347.12354, 347.12354),
+        ("elsarticle", "5p", "elsarticle 5p", 522.0, 252.0),
+        ("elsarticle", "3p twocolumn", "elsarticle 3p, two columns", 468.0, 222.0),
+        ("elsarticle", "3p", "elsarticle 3p", 468.0, 468.0),
+        ("elsarticle", "1p", "elsarticle 1p", 384.0, 384.0),
+        ("elsarticle", "", "elsarticle preprint", 345.0, 345.0),
+        ("revtex4-2", "preprint", "revtex4-2 preprint", 468.0, 468.0),
+        ("revtex4-2", "twocolumn", "revtex4-2, two columns", 510.0, 246.0),
+        ("revtex4-2", "reprint", "revtex4-2 reprint", 510.0, 246.0),
+        ("revtex4-2", "", "revtex4-2", 510.0, 510.0),
+    ]
+]
+# acmart formats not measured: their widths are not guessed
+ACM_FORMATS = {"manuscript", "acmsmall", "acmlarge", "acmtog", "sigconf", "sigchi", "sigplan"}
+
+
+def class_template(name: str, options: list[str]) -> Template | None:
+    r"""The widths a known class sets for these options, or None.
+
+    >>> class_template("IEEEtran", ["conference"]).column * IN, class_template("acmart", ["sigconf", "review"]).name
+    (252.0, 'acmart sigconf')
+    >>> class_template("acmart", ["acmengage"]) is None, class_template("memoir", []) is None
+    (True, True)
+    """
+    opts = set(options)
+    if name == "acmart" and any(o.startswith(("acm", "sig")) and o not in ACM_FORMATS for o in opts):
+        return None
+    for cls, need, label, text, column in CLASSES:
+        if cls == name and need <= opts:
+            return Template(label, text / IN, column / IN, f"{cls}.cls")
+    return None
+
+
 # a style file's name, among the packages \usepackage loads (one or a list: \usepackage{iccv, times})
 DETECT = [
     (r"neurips_\d{4}", "neurips"),
@@ -159,8 +215,12 @@ def layout(tex: str, template: Template | None = None) -> tuple[Template, str]:
         how.append("given")
     else:
         template = detect(tex)
+        known = class_template(class_name, class_options)
         if template is not TEMPLATES["article"]:
             how.append("detected")
+        elif known is not None:
+            template = known
+            how.append("from the class")
         else:
             size = next((o for o in class_options if o in CLASS_WIDTH), "10pt")
             paper_name = next((o for o in class_options if o in PAPERS), "letterpaper")
@@ -176,7 +236,7 @@ def layout(tex: str, template: Template | None = None) -> tuple[Template, str]:
                 )
             how.append("from the class options")
             if class_name not in KNOWN_CLASSES:
-                how[-1] = f"the class {class_name} is not one fig-check knows: LaTeX's article widths, give --template if wrong"
+                how[-1] = f"the class {class_name} (with these options) is not one fig-check knows: LaTeX's article widths, give --template if wrong"
     two_column = template.column < template.text - 1e-6
     sep = template.text - 2 * template.column if two_column else ARTICLE_COLUMNSEP
     text = template.text
