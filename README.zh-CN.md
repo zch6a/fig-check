@@ -2,7 +2,7 @@
 
 # fig-check
 
-**按论文印出来的样子检查图。** 文字按印刷大小量（算上图在论文里的缩放），找出色觉异常的读者分不清的颜色，以及印刷时太粗糙的位图；
+**按论文印出来的样子检查图。** 文字按印刷大小量（算上图在论文里的缩放），找出色觉异常读者分不清的颜色，以及印刷时太粗糙的位图；
 LaTeX 工程里的每张图都按它实际印出的宽度检查。
 
 <a href="https://github.com/zch6a/fig-check/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/zch6a/fig-check/actions/workflows/ci.yml/badge.svg"></a>
@@ -16,7 +16,7 @@ LaTeX 工程里的每张图都按它实际印出的宽度检查。
 
 ---
 
-一张图按 6 英寸宽、10 pt 标签画出来，放进 3.25 英寸的栏里，标签就只剩 5.4 pt；红线和绿线在大约十二分之一的北欧裔男性看来是同一条线；
+一张图按 6 英寸宽、10 pt 标签画出来，放进 3.25 英寸的栏里，标签就只剩 5.4 pt。红线和绿线在大约十二分之一的北欧裔男性看来是同一条线。
 640 像素宽的图拉满正文宽度，印出来每英寸只有 116 个像素。这些在屏幕上放大看都发现不了；fig-check 在审稿人之前找出来。
 
 ```bash
@@ -34,7 +34,7 @@ uvx --from git+https://github.com/zch6a/fig-check fig-check paper/
 - **让 LaTeX 来画**：`save_pgfplots(fig, "figures/loss.tex")` 把 matplotlib 图写成 pgfplots 代码，论文里 `\input` 它（导言区加 `\usepackage{pgfplots}`），
   LaTeX 按印出的宽度、用论文自己的字体和字号画图，字就不会随图缩小（端到端实测：同一张 6×4 英寸的图放进双栏论文，作为 PDF 插入时字印出 5.3 pt，导出为 pgfplots 后为 10 pt）。导出折线、散点、柱、`fill_between`、误差棒、文字、坐标轴标签、标题、范围、对数轴、刻度、网格、图例；
   不能导出的（图像、色条、3D、整图文字）在返回的 notes 里列出，也写在文件开头的注释里。
-- **会议之外的文档类**：IEEEtran、acmart（sigconf 等）、llncs、elsarticle、revtex4-2 的宽度取自 pdflatex 用这些类与选项实际排出的结果。
+- **会议之外的文档类**：IEEEtran、acmart（sigconf 等）、llncs、elsarticle、revtex4-2 的宽度是 pdflatex 用这些类与选项实际排出来的结果。
 - **保存之前的 matplotlib 图**：`check_figure(fig, width="column", template="icml")`，返回的报告 `print()` 出来与命令行输出相同；图只在内存里存成 PDF 检查，不写盘，其余关键字参数传给 `savefig`。
 - **格式**：PDF（只用标准库读取：文字、颜色、内嵌图片、表单 XObject、压缩流与对象流）、PNG（解码取颜色）、JPEG（取尺寸）、SVG。EPS 只提示，不读取。
 

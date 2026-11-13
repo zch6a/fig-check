@@ -233,3 +233,9 @@ Tests: 187. ruff, ruff format, mypy clean.
 
 **v0.1.0**: tagged after this round's CI passed (annotated tag); the release workflow builds, tests, attaches the
 wheel and source archive, and moves `v0`.
+
+### 2026-11-14 — Chinese README: AI tone
+
+3 places changed: the opening three-example sentence chained two semicolons (split into sentences); one double-的 attributive (色觉异常的读者分不清的颜色) shortened; one long attributive before 结果 in the document-class item recast.
+The checks follow the findings of lieflat-less-ai-tone (shiujan, CC BY-NC 4.0); its findings are applied, its text is not copied.
+Left as is: colon-led lists, complete enumerations (LaTeX commands, exported plot kinds, formats), precise numbers, and single semicolons.
