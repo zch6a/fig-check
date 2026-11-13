@@ -1,8 +1,8 @@
 ---
 name: fig-check
-description: Check a paper's figures with fig-check before submission: text size at the size it prints (the figure's scale in the LaTeX paper applied), colour pairs that people with protanopia, deuteranopia or tritanopia cannot tell apart, and raster images too coarse for print, for every figure of a LaTeX project (NeurIPS, ICLR, ICML, CVPR/ICCV, ACL, AAAI templates and the IEEEtran, acmart, llncs, elsarticle and revtex classes detected) or single PDF/PNG/JPEG/SVG files. Use when the user asks whether their figures are readable, colour-blind friendly or high enough resolution, or to check a paper's figures before submitting.
+description: "Check a paper's figures with fig-check before submission: text size at the size it prints (the figure's scale in the LaTeX paper applied), colour pairs that people with protanopia, deuteranopia or tritanopia cannot tell apart, and raster images too coarse for print, for every figure of a LaTeX project (NeurIPS, ICLR, ICML, CVPR/ICCV, ACL, AAAI templates and the IEEEtran, acmart, llncs, elsarticle and revtex classes detected) or single PDF/PNG/JPEG/SVG files. Use when the user asks whether their figures are readable, colour-blind friendly or high enough resolution, or to check a paper's figures before submitting."
 license: MIT
-compatibility: Needs Python 3.10+ and uv. Runs fig-check with uvx from GitHub (git+https://github.com/zch6a/fig-check) unless installed. Reads local files only; no network.
+compatibility: "Needs Python 3.10+ and uv. Runs fig-check with uvx from GitHub (git+https://github.com/zch6a/fig-check) unless installed. Reads local files only; no network."
 metadata:
   homepage: https://github.com/zch6a/fig-check
 ---

@@ -1,7 +1,7 @@
 {
   "name": "fig-check",
   "description": "Check a paper's figures as they will print: text size at its printed scale, colours people with colour vision deficiency cannot tell apart, raster resolution, for every figure of a LaTeX project.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": { "name": "zch6a" },
   "homepage": "https://github.com/zch6a/fig-check",
   "repository": "https://github.com/zch6a/fig-check",

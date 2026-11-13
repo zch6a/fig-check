@@ -239,3 +239,11 @@ wheel and source archive, and moves `v0`.
 3 places changed: the opening three-example sentence chained two semicolons (split into sentences); one double-的 attributive (色觉异常的读者分不清的颜色) shortened; one long attributive before 结果 in the document-class item recast.
 The checks follow the findings of lieflat-less-ai-tone (shiujan, CC BY-NC 4.0); its findings are applied, its text is not copied.
 Left as is: colon-led lists, complete enumerations (LaTeX commands, exported plot kinds, formats), precise numbers, and single semicolons.
+
+### 2026-11-14 — v0.1.1
+
+Putting every tool's skill into one marketplace (research-kit) and running `claude plugin validate` on each
+showed this one's SKILL.md frontmatter did not parse: a plain YAML value with `: ` inside ("…: text size…")
+starts a new key, so Claude Code loaded the skill with no description, and an agent would never pick it. The
+description and compatibility values are quoted (a JSON string is a YAML double-quoted scalar); validation passes.
+Released as 0.1.1 so that `v0`, which the marketplace installs from, carries the fix.
