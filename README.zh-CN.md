@@ -56,6 +56,10 @@ uvx --from git+https://github.com/zch6a/fig-check fig-check paper/
 - 转成轮廓（路径而非字体）的文字不算文字；位图里的文字也量不了。
 - 颜色取路径与文字的颜色；渐变与图案不跟随。
 
+## 属于 research-kit
+
+这是 13 个开源科研工具之一，覆盖从读论文到论文发表之后。全部工具按科研流程的介绍，以及安装它们技能的 Claude Code 插件市场，见 [research-kit](https://github.com/zch6a/research-kit) · [网站](https://zch6a.github.io/research-kit/)。
+
 ## 许可证
 
 MIT。
