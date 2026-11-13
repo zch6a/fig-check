@@ -14,7 +14,8 @@ FONT = b"/Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>"
 
 out = root / "examples" / "paper"
 (out / "figures").mkdir(parents=True, exist_ok=True)
-(out / "main.tex").write_text(r"""\documentclass{article}
+(out / "main.tex").write_text(
+    r"""\documentclass{article}
 \usepackage[final]{neurips_2025}
 \usepackage{graphicx}
 \graphicspath{{figures/}}
@@ -36,7 +37,10 @@ out = root / "examples" / "paper"
   \caption{The method: drawn at the size it prints, in blue and orange.}
 \end{figure}
 \end{document}
-""", encoding="utf-8", newline="\n")
+""",
+    encoding="utf-8",
+    newline="\n",
+)
 
 loss = (b"BT /F1 10 Tf 40 20 Td (step) Tj ET BT /F1 10 Tf 0 1 -1 0 15 100 Tm (loss) Tj ET "
         b"0.84 0.15 0.16 RG 2 w 50 40 m 200 150 l 400 180 l S 0.17 0.63 0.17 RG 50 60 m 200 120 l 400 160 l S")  # fmt: skip
