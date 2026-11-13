@@ -33,5 +33,11 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - run: uv run python scripts/example.py
-      - run: git diff --exit-code examples/
+      # zlib's output differs between versions, so PNGs are compared by their pixels, the rest byte for byte
+      - run: git diff --exit-code -- examples/ ':(exclude)*.png'
+      - run: |
+          for f in $(git ls-files 'examples/*.png'); do
+            git show "HEAD:$f" > /tmp/committed.png
+            uv run python scripts/same_png.py /tmp/committed.png "$f"
+          done
       - run: uv run fig-check examples/paper || test $? -eq 1  # it finds the example's problems: exit 1, nothing else

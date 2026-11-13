@@ -11,4 +11,5 @@ build/
 /page/
 /trial/
 *.pdf
+!/examples/**/*.pdf
 *.tar.gz
