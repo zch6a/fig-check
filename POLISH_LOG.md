@@ -201,3 +201,35 @@ Tests: 186. ruff, ruff format, mypy clean.
 
 Next: polishing round 5 (a last review of everything against the "polish" definition; docs read through end to end;
 then v0.1.0).
+### 2026-11-13 — polishing round 5, and v0.1.0
+
+**Docs read through, end to end** (README in both languages, CONTRIBUTING, SECURITY, CHANGELOG, the skill):
+
+- "About one man in twelve" with red–green colour vision deficiency is a figure for men of Northern European
+  ancestry; said so (both READMEs).
+- The README had no install line for the Python API (`pip install git+...`), did not list `--template`'s names, and
+  did not say that it reads local files only: added.
+- CONTRIBUTING's module table missed `figure.py` and `pgf.py`; adding a class (measured with pdflatex) and changing
+  the exporter (compile and compare) are now described.
+- SECURITY now says what the matplotlib parts write (memory; the one file named) and that maths in labels is passed
+  through to the pgfplots file.
+- The CHANGELOG was a list of rounds and said "33 preambles": rewritten as release notes.
+
+**The pdflatex checks are now in the repository**: `scripts/latex_widths.py` compiles every preamble and class case
+of the tests with your pdflatex and compares its widths with the test tables and with fig-check's (it lived in a
+scratch folder until now, so nobody else could rerun it). Run here: 76 cases, all agree. revtex4-2 refuses `\title`
+before `\begin{document}`, so only acmart is measured after `\maketitle`.
+
+**Fuzzing** (security): 3,000 then 3 × 4,000 corrupted PDFs, PNGs, JPEGs and SVGs (bit flips, truncation, inserted
+PDF tokens, duplicated chunks; seeds include pdflatex's own output) through `check_bytes`, and 4,000 corrupted LaTeX
+sources through the width and figure readers. **Found**: a PNG of 0 pixels, or one stating 0 pixels per inch, divided
+by zero; now an error finding, and a 0 resolution is taken as none (72 dpi). After the fix: no exceptions, nothing
+slower than 2 s. A regression test for both.
+
+**Engineering**: the release workflow handles annotated and plain tags, its job with write access runs nothing of the
+project, and the CHANGELOG section extracts to the notes. CI green.
+
+Tests: 187. ruff, ruff format, mypy clean.
+
+**v0.1.0**: tagged after this round's CI passed (annotated tag); the release workflow builds, tests, attaches the
+wheel and source archive, and moves `v0`.

@@ -155,7 +155,12 @@ def _vector(report: Report, fig: object, width: float | None, height: float | No
 
 def _raster(report: Report, r: object, width: float | None, height: float | None, scale: float | None, limits: Limits) -> None:
     px, py = r.pixels  # type: ignore[attr-defined]
+    if px <= 0 or py <= 0:
+        report.findings.append(Finding("read", "error", f"cannot be read: an image of {px}×{py} pixels"))
+        return
     dpi_stated = r.dpi  # type: ignore[attr-defined]
+    if dpi_stated and (dpi_stated[0] <= 0 or dpi_stated[1] <= 0):
+        dpi_stated = None  # a stated resolution of 0 is no resolution: pdfLaTeX's 72 dpi
     # pdfLaTeX's natural size for an image without a stated resolution: 72 pixels an inch
     nat_w = px / (dpi_stated[0] if dpi_stated else 72) * 72
     nat_h = py / (dpi_stated[1] if dpi_stated else 72) * 72

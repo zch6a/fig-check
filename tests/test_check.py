@@ -171,3 +171,11 @@ def test_errors_and_help(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> 
     with pytest.raises(SystemExit):
         cli.main(["x.pdf", "--width", "3"])
     assert "(inches: 3in)" in capsys.readouterr().err
+
+
+def test_an_image_of_no_pixels_or_no_resolution_is_read_not_crashed_on() -> None:  # found by fuzzing
+    from fig_check.check import check_bytes
+
+    for data in (png(0, 10), png(10, 10, dpi=0)):
+        r = check_bytes(data, "x.png", width=1.0)
+        assert r.findings  # an error finding or the 72 dpi reading, not an exception

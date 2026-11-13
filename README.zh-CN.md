@@ -16,14 +16,14 @@ LaTeX 工程里的每张图都按它实际印出的宽度检查。
 
 ---
 
-一张图按 6 英寸宽、10 pt 标签画出来，放进 3.25 英寸的栏里，标签就只剩 5.4 pt；红线和绿线在大约十二分之一的男性看来是同一条线；
+一张图按 6 英寸宽、10 pt 标签画出来，放进 3.25 英寸的栏里，标签就只剩 5.4 pt；红线和绿线在大约十二分之一的北欧裔男性看来是同一条线；
 640 像素宽的图拉满正文宽度，印出来每英寸只有 116 个像素。这些在屏幕上放大看都发现不了；fig-check 在审稿人之前找出来。
 
 ```bash
 uvx --from git+https://github.com/zch6a/fig-check fig-check paper/
 ```
 
-输出示例见[英文 README](README.md)（对 [examples/paper](examples/paper) 这个虚构工程运行的结果）。没有问题时退出码为 0，有问题为 1，无法运行为 2；`--json` 输出报告。
+输出示例见[英文 README](README.md)（对 [examples/paper](examples/paper) 这个虚构工程运行的结果）。没有问题时退出码为 0，有问题为 1，无法运行为 2；`--json` 输出各工程所用的宽度及其来源，以及每张图的检查结果。只读本地文件，不联网。要用 Python 接口时安装：`pip install git+https://github.com/zch6a/fig-check`。
 
 ## 读取什么
 

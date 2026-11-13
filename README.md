@@ -18,12 +18,15 @@ for every figure of a LaTeX project at the width each one prints at.
 ---
 
 A figure made 6 inches wide with 10 pt labels and printed in a 3.25-inch column has 5.4 pt labels. A red line and a
-green line are the same line to about one man in twelve. A 640-pixel image stretched over the text width prints at
+green line are the same line to about one in twelve men of Northern European ancestry. A 640-pixel image stretched over the text width prints at
 116 pixels per inch. None of this shows on screen, where you zoom; fig-check finds it before the reviewers do.
 
 ```bash
 uvx --from git+https://github.com/zch6a/fig-check fig-check paper/
 ```
+
+(`pip install git+https://github.com/zch6a/fig-check` for the Python API below. It reads local files only and sends
+nothing anywhere.)
 
 ```
 fig-check: main.tex: NeurIPS (detected): text 5.50 in, column 5.50 in
@@ -49,7 +52,7 @@ there is, 2 when it could not run. `--json` gives `{"version", "limits", "projec
   column), `figure*` (the text), `wrapfigure`, `subfigure` and `minipage`. The venue's widths come from the style the
   preamble loads, or from the class options (`11pt`, `a4paper`, `twocolumn`) as LaTeX's `article` sets them; then
   from the preamble's own `geometry` options, `\setlength{\textwidth}` or `\columnsep`. `--template` names the venue
-  when the preamble does not.
+  when the preamble does not: `neurips`, `iclr`, `icml`, `cvpr`, `acl`, `aaai`, `ieee`, `acm`, `lncs` or `article`.
 - **Single figures**: `fig-check plot.pdf --width 3.25in`.
 - **A matplotlib figure, before it is saved** (below).
 - **Formats**: PDF (read with the standard library: text, colours, embedded images, form XObjects, compressed and
@@ -75,7 +78,7 @@ Widths from `article`'s class options and from the preamble are worked out as `a
 `geometry.sty` and `fullpage.sty` do. For 51 preambles (paper sizes, margins, one margin alone, ratios, `twoside`,
 `landscape`, `bindingoffset`, two columns, repeated `\geometry` calls, `\PassOptionsToPackage`, `fullpage`,
 `\setlength`, `\addtolength`, `\advance`) they agree with the widths pdflatex prints, to 0.01 pt, and the tests hold
-those widths.
+those widths; `scripts/latex_widths.py` compiles them all again with your pdflatex and compares.
 
 ### In Python: a matplotlib figure
 
@@ -120,9 +123,9 @@ The axes sit where matplotlib put them. Exported: lines (colour, opacity, width,
 scatter points, bars and other rectangles, `fill_between`, error bars, text, axis labels, titles, limits (inverted
 too), log scales, ticks with their labels (categories, dates, rotation) and the axis's scale factor, grids, legends
 (where matplotlib put them, with its entries and order), `twinx` axes. Labels are escaped for LaTeX, with `$...$`
-maths kept; `\mathregular` and characters like ≥, µ, α become LaTeX that pdflatex's default fonts can set. What is not exported (images, colour bars, 3D
-axes, figure-level text) is returned in `notes` and written as comments at the top of the file: for those, save a PDF
-and check it. It fills the role tikzplotlib did, for the parts of a figure papers mostly have; the code it writes was
+maths kept; `\mathregular` and characters like ≥, µ, α become LaTeX that pdflatex's default fonts can set. What
+is not exported (images, colour bars, 3D axes, figure-level text, annotation arrows) is returned in `notes` and
+written as comments at the top of the file: for those, save a PDF and check it. It fills the role tikzplotlib did, for the parts of a figure papers mostly have; the code it writes was
 compiled with pdflatex and compared with the matplotlib figure.
 
 End to end, one 6 × 4 in matplotlib figure in a two-column paper, each compiled paper checked by fig-check at its
