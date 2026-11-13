@@ -47,5 +47,10 @@ and CI checks that the generator reproduces the committed files.
 
 Tests: 66 (with doctests). ruff, mypy clean.
 
+First CI run failed on every job, two causes: the `.gitignore` line keeping fetched papers' PDFs out (`*.pdf`) also
+kept the example's PDFs out, so the README test found them missing (now `!/examples/**/*.pdf`); and the regenerated
+PNG's bytes differ with zlib's version, so CI compares PNGs by their decompressed image (`scripts/same_png.py`) and
+the rest byte for byte. Also: one commit went in with `ruff format --check` failing; fixed in the next. CI green.
+
 Next: polishing round 1 (widths set in the preamble, `\setlength{\textwidth}` and `geometry`; a matplotlib API to
 check a figure before saving it; then the pgfplots exporter).
