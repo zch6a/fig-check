@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use fig-check in your research, please cite it as below."
+title: "fig-check: a paper's figures as they will print"
+type: software
+authors:
+  - alias: zch6a
+repository-code: "https://github.com/zch6a/fig-check"
+license: MIT
+version: "0.2.1"
+date-released: "2026-11-14"

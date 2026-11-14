@@ -1,6 +1,6 @@
 [project]
 name = "fig-check"
-version = "0.2.0"
+version = "0.2.1"
 description = "Check a paper's figures as they will print: font sizes at their printed scale, colours that people with colour vision deficiency cannot tell apart, raster resolution. For a LaTeX project at the widths its figures print at, single PDF, PNG, JPEG and SVG files, or matplotlib figures before saving; and matplotlib figures as pgfplots code."
 readme = "README.md"
 license = "MIT"
