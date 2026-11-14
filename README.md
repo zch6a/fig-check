@@ -103,6 +103,41 @@ go to `savefig` (`bbox_inches="tight"`, `dpi=300` for `imshow` images, which mat
 dpi). matplotlib is not a dependency: anything with `savefig(file, format="pdf")` will do. `check_file` and
 `check_bytes` check files and bytes the same way.
 
+### Make it at the width it prints at: `paper_style`
+
+The other fix is to make the figure at the size it will print, in the paper's font, so LaTeX does not scale it:
+
+```python
+import matplotlib.pyplot as plt
+from fig_check import paper_style, save_for_paper
+
+with plt.rc_context(paper_style("icml")):  # 3.25 in wide (ICML's column), Times, 9 pt labels, 8 pt ticks
+    fig, ax = plt.subplots()
+    ax.plot(steps, loss, label="ours")
+    report = save_for_paper(fig, "figures/loss.pdf", "icml")  # saved at exactly 3.25 in, then checked
+print(report)
+```
+
+```
+loss.pdf: 3.25 in wide, smallest text 8.0 pt
+  note: fonts in the PDF: STIXGeneral-Regular, TimesNewRomanPSMT
+```
+
+`\includegraphics[width=\columnwidth]{figures/loss.pdf}` then prints it at 100%. `paper_style(template, width,
+height=, aspect=, font=, fontsize=)` returns plain rcParams: the figure's width (`"column"`, `"text"`, inches,
+`"0.48\linewidth"`), the template's typeface (Times for NeurIPS, ICLR, ICML, CVPR and ACL; Computer Modern for
+`article`), text a point under the body size and ticks two under, constrained layout (so labels stay inside the width
+without `bbox_inches="tight"`, which `save_for_paper` refuses because it changes the width), and fonts embedded as
+TrueType rather than Type 3. `save_for_paper` warns when the paper is in Times and the figure is not (matplotlib falls
+back to DejaVu when no Times font is installed).
+
+The typefaces and sizes are what pdflatex sets with each style file: `\f@family` and `\f@size` printed after
+`\begin{document}` with `neurips_2025.sty`, `icml2025.sty`, `iclr2025_conference.sty` (with the template's `times`)
+and `acl.sty` (`11pt`, `times`): Times at 10 pt, ACL at 10.95 pt. `cvpr.sty` could not be compiled here (it needs
+`silence.sty`); it loads `times` and its template is `10pt`. For the other templates, pass `font="times"` or
+`font="computer modern"`. End to end: a figure made with `paper_style("icml")`, included at `\columnwidth` in a paper
+compiled with `icml2025.sty` (column 234.88 pt = 3.25 in), checked by fig-check: printed at 100%, smallest text 8 pt.
+
 ### Or let LaTeX draw it: pgfplots
 
 The surest fix for small text is not to shrink the figure at all. `save_pgfplots` writes a matplotlib figure as

@@ -31,6 +31,8 @@ uvx --from git+https://github.com/zch6a/fig-check fig-check paper/
   以及 `figure`（栏宽）、`figure*`（正文宽）、`wrapfigure`、`subfigure`、`minipage` 里的行宽。会议的宽度取自导言区加载的样式文件，或按 LaTeX `article` 的规则由文档类选项（`11pt`、`a4paper`、`twocolumn`）算出；
   再应用导言区自己的 `geometry` 选项、`\setlength{\textwidth}` 或 `\columnsep`。识别不了时用 `--template` 指定。
 - **单张图**：`fig-check plot.pdf --width 3.25in`。
+- **按印出的宽度做图**：在 `plt.rc_context(paper_style("icml"))` 里画图，再用 `save_for_paper(fig, "figures/loss.pdf", "icml")` 保存。图按会议的栏宽（ICML 为 3.25 英寸）做，字体用论文的字体（NeurIPS、ICLR、ICML、CVPR、ACL 用 Times，`article` 用 Computer Modern），坐标轴标签比正文小 1 pt、刻度小 2 pt；保存时宽度正好等于栏宽，字体以 TrueType 嵌入（不是 Type 3），保存后立即按这个宽度检查。论文里 `\includegraphics[width=\columnwidth]` 插入时缩放比例为 100%，字印出来就是做图时的字号。`bbox_inches="tight"` 会改变宽度，`save_for_paper` 不接受；论文用 Times 而图里没有 Times 时会给警告（没装 Times 字体时 matplotlib 会退回 DejaVu）。
+  字体和字号是 pdflatex 加载各会议样式文件后实际设置的值（在 `\begin{document}` 之后打印 `\f@family` 和 `\f@size`）：NeurIPS、ICML、ICLR 为 Times 10 pt，ACL 为 Times 10.95 pt；`cvpr.sty` 在这里编译不了（缺 `silence.sty`），它加载 `times`，模板是 `10pt`。其他模板请传 `font="times"` 或 `font="computer modern"`。端到端实测：用 `paper_style("icml")` 做的图，以 `\columnwidth` 插入用 `icml2025.sty` 编译的论文（栏宽 234.88 pt = 3.25 英寸），fig-check 检查结果为缩放 100%、最小字号 8 pt。
 - **让 LaTeX 来画**：`save_pgfplots(fig, "figures/loss.tex")` 把 matplotlib 图写成 pgfplots 代码，论文里 `\input` 它（导言区加 `\usepackage{pgfplots}`），
   LaTeX 按印出的宽度、用论文自己的字体和字号画图，字就不会随图缩小（端到端实测：同一张 6×4 英寸的图放进双栏论文，作为 PDF 插入时字印出 5.3 pt，导出为 pgfplots 后为 10 pt）。导出折线、散点、柱、`fill_between`、误差棒、文字、坐标轴标签、标题、范围、对数轴、刻度、网格、图例；
   不能导出的（图像、色条、3D、整图文字）在返回的 notes 里列出，也写在文件开头的注释里。

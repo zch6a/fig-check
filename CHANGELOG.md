@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0 — 2026-11-14
+
+- **`paper_style(template, width="column", ...)`**: rcParams for a matplotlib figure made at the width it prints at,
+  in the paper's typeface (Times for NeurIPS, ICLR, ICML, CVPR, ACL; Computer Modern for `article`, measured with
+  pdflatex and each style file), text one point under the body size, ticks two under, constrained layout, TrueType
+  fonts.
+- **`save_for_paper(fig, path, template, width="column")`**: saves at exactly that width (TrueType fonts whatever the
+  rcParams), refuses `bbox_inches="tight"`, checks the saved file at that width, names the fonts in the PDF and warns
+  when the paper is in Times and the figure is not. `embedded_fonts(pdf_bytes)` lists a PDF's fonts.
+- End to end: a figure from `paper_style("icml")` in a compiled ICML paper prints at 100%, smallest text 8 pt.
+
 ## 0.1.1 — 2026-11-14
 
 - The agent skill's frontmatter is valid YAML again: its description held a `: `, which YAML reads as a new key, so

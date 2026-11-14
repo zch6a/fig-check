@@ -252,3 +252,26 @@ Released as 0.1.1 so that `v0`, which the marketplace installs from, carries the
 
 Both READMEs now end (before the licence) with a short section pointing to research-kit, the toolkit's front door: all
 thirteen tools in the order of the work, and one Claude Code plugin marketplace for their skills. Documentation only.
+
+### 2026-11-14 — 0.2.0: paper_style and save_for_paper
+
+Chosen from research-kit's list of needs nothing covers: "export Matplotlib figures at the venue's exact column width,
+with fonts matching the paper" (SciencePlots sets looks, not widths; tikzplotlib is unmaintained, and save_pgfplots
+covers only the LaTeX-draws-it route).
+
+The fonts were measured, not assumed: the style files fetched (NeurIPS 2025 and ICML 2025 kits, ICLR's, ACL's and
+CVPR's GitHub repositories; to a temporary folder, deleted after) and compiled with MiKTeX's pdflatex printing
+`\f@family` and `\f@size` after `\begin{document}`: ptm at 10 pt for NeurIPS, ICML and ICLR (with its template's
+`times`), ptm at 10.95 pt for ACL (`11pt`), cmr at 10 pt for `article`. CVPR's style needs `silence.sty`, which this
+MiKTeX does not have and was not installed: its `\RequirePackage{times}` and `10pt` are read from the file and the
+table says so. AAAI, IEEEtran, acmart and llncs are not in the table: `font=` is required for them.
+
+Two mistakes on the way, both from how matplotlib resolves fonts: rcParams set while making the figure but not while
+saving it gave DejaVu Serif and Type 3 fonts, because matplotlib picks fonts and the PDF font type when it draws.
+`save_for_paper` now forces TrueType itself, and the docs say to save inside the same `rc_context`. A `$\times 10^3$`
+in a label gave 6.3 pt text (the exponent): that is real, and the check reports it.
+
+End to end: a figure made with `paper_style("icml")` included at `\columnwidth` in a paper compiled with
+`icml2025.sty` (pdflatex prints a column of 234.8775 pt = 3.25 in); fig-check on that paper reports 3.25 in, 100%,
+smallest text 8.0 pt, fonts Times New Roman and STIX. 9 tests (each template's figure prints at its size with ticks
+two points under the body, the same figure made big and shrunk has 5 pt text, no Type 3 fonts, values and errors).

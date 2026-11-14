@@ -25,7 +25,11 @@ uvx --from git+https://github.com/zch6a/fig-check fig-check plot.pdf --width 3.2
 - For a matplotlib figure the user is making, check it before saving, in Python:
   `from fig_check import check_figure; print(check_figure(fig, width="column", template="icml"))` (needs fig-check
   installed in that environment: `uv pip install git+https://github.com/zch6a/fig-check`).
-- For plots whose labels come out too small, offer the cleaner fix: `from fig_check import save_pgfplots;
+- For a matplotlib figure, the simplest fix is to make it at the printed width in the paper's font:
+  `with plt.rc_context(paper_style("icml")): ...; report = save_for_paper(fig, "figures/x.pdf", "icml")` (from
+  `fig_check`), then include it with `width=\columnwidth`. Save inside the same `rc_context` (matplotlib picks fonts
+  when it draws), and read back the report's font line: DejaVu instead of Times means no Times font is installed.
+- For plots whose labels come out too small, offer the other clean fix: `from fig_check import save_pgfplots;
   save_pgfplots(fig, "figures/x.tex")`, then `\input{figures/x.tex}` with `\usepackage{pgfplots}`, so LaTeX draws
   the plot at its printed width in the paper's font. Read back the notes it returns (what it could not export).
 - Exit status 1 means there is something to fix; `--json` gives `projects` (the widths used and how they were found,
