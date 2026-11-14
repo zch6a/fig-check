@@ -275,3 +275,20 @@ End to end: a figure made with `paper_style("icml")` included at `\columnwidth` 
 `icml2025.sty` (pdflatex prints a column of 234.8775 pt = 3.25 in); fig-check on that paper reports 3.25 in, 100%,
 smallest text 8.0 pt, fonts Times New Roman and STIX. 9 tests (each template's figure prints at its size with ticks
 two points under the body, the same figure made big and shrunk has 5 pt text, no Type 3 fonts, values and errors).
+
+### 2026-11-14 — 0.3.0: diagram
+
+From research-kit's list: "editable, paper-style architecture diagrams generated from model code, beyond CNN layer
+stacks" (PlotNeuralNet is hand-written TikZ for CNNs; torchview draws graphs too detailed for a paper).
+
+Tried on real models (torch and torchvision installed for the measurement only, through uv; no weights downloaded):
+- first ResNet-18: stages labelled "Sequential", and "BasicBlock -> BasicBlock" in stages 2 to 4 (the first block has a
+  downsample path, so their parameter counts differ); `nn.TransformerEncoder` was one "ModuleList" box; ViT's encoder
+  showed one "Sequential". Now a container stands for its repeated block ("BasicBlock ×2", with the stage's name on
+  the second line), parts are grouped by kind, and containers inside a block are opened ("EncoderBlock ×12");
+- compiled with pdflatex: a middle dot in the labels brought in a bitmap (Type 3) font: now a comma; the TikZ needs
+  the positioning library, which its header says;
+- ResNet-18 in one row was 9.7 in wide: `per_row` wraps it (5 per row: 5.25 in);
+- fig-check on the compiled figure warned about 7 pt text (\scriptsize): now \footnotesize, 8 pt; then nothing to fix.
+
+2 tests on stand-in modules (no torch in the test environment), and the doctests.

@@ -138,6 +138,28 @@ and `acl.sty` (`11pt`, `times`): Times at 10 pt, ACL at 10.95 pt. `cvpr.sty` cou
 `font="computer modern"`. End to end: a figure made with `paper_style("icml")`, included at `\columnwidth` in a paper
 compiled with `icml2025.sty` (column 234.88 pt = 3.25 in), checked by fig-check: printed at 100%, smallest text 8 pt.
 
+### The architecture figure: `diagram`
+
+```python
+import torchvision
+from fig_check import diagram
+
+d = diagram(torchvision.models.resnet18(weights=None), skip=("Identity",), per_row=5)
+d.save_tikz("figures/resnet18.tex")  # \input it (with \usepackage{tikz}\usetikzlibrary{positioning}); edit the labels there
+open("resnet18.svg", "w").write(d.svg())  # the same blocks as SVG, for a README or slides
+```
+
+<p align="center"><img src="docs/diagram.svg" alt="ResNet-18 as blocks: Conv2d, BatchNorm2d, ReLU, MaxPool2d, then four stages of BasicBlock ×2 with their parameter counts, AdaptiveAvgPool2d and Linear, in two rows"></p>
+
+It reads the model's modules (anything with `named_children()`: torch is not a dependency), collapses repeated blocks
+("BasicBlock ×2", "TransformerEncoderLayer ×6", ViT's "EncoderBlock ×12"), opens containers (`nn.Sequential`,
+`nn.ModuleList`), and writes TikZ that LaTeX sets in the paper's own font: each box the block's class, its name and
+parameter count; `labels={"layer1": "Stage 1"}` renames, `depth=2` lists each block's parts, `direction="down"` stacks
+them, `per_row` wraps a long chain. Checked on ResNet-18, `nn.TransformerEncoder` and ViT-B/16 (torchvision, no
+weights downloaded): the TikZ compiles with pdflatex, and fig-check finds the compiled figures fine (5.25 in and 3.99
+in wide, smallest text 8 pt, Type 1 fonts only). Two things the first version got wrong: a middle dot in the labels
+made pdflatex fall back to a bitmap (Type 3) font, and 7 pt second lines were at the warning threshold.
+
 ### Or let LaTeX draw it: pgfplots
 
 The surest fix for small text is not to shrink the figure at all. `save_pgfplots` writes a matplotlib figure as

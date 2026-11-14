@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — 2026-11-14
+
+- **`diagram(model)`**: a model's architecture as an editable TikZ figure (and SVG): its blocks in order, repeated
+  blocks collapsed ("×N"), containers opened, each box with the class, name and parameter count; `labels`, `depth`,
+  `direction`, `per_row`, `skip`. Any object with `named_children()`; torch is not a dependency. Checked on
+  ResNet-18, `nn.TransformerEncoder` and ViT-B/16: compiles with pdflatex, and fig-check finds the figures fine.
+
 ## 0.2.1 — 2026-11-14
 
 - The Claude Code plugin's manifest (`plugin/.claude-plugin/plugin.json`) says 0.2.1: it had stayed at an older

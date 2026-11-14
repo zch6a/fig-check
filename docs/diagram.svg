@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="697" height="126" viewBox="0 0 697 126" font-family="Times New Roman, Times, serif" font-size="13">
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z"/></marker></defs>
+<rect x="10.0" y="10.0" width="88.0" height="40" rx="4" fill="#fff" stroke="#333"/>
+<text x="54.0" y="27" text-anchor="middle">Conv2d</text>
+<text x="54.0" y="42" text-anchor="middle" font-size="10" fill="#555">conv1, 9.4K</text>
+<rect x="124.0" y="10.0" width="101.2" height="40" rx="4" fill="#fff" stroke="#333"/>
+<text x="174.6" y="27" text-anchor="middle">BatchNorm2d</text>
+<text x="174.6" y="42" text-anchor="middle" font-size="10" fill="#555">bn1, 128</text>
+<line x1="98.0" y1="30.0" x2="122.0" y2="30.0" stroke="#333" marker-end="url(#a)"/>
+<rect x="251.2" y="10.0" width="50.8" height="40" rx="4" fill="#fff" stroke="#333"/>
+<text x="276.6" y="27" text-anchor="middle">ReLU</text>
+<line x1="225.2" y1="30.0" x2="249.2" y2="30.0" stroke="#333" marker-end="url(#a)"/>
+<rect x="328.0" y="10.0" width="86.8" height="40" rx="4" fill="#fff" stroke="#333"/>
+<text x="371.4" y="27" text-anchor="middle">MaxPool2d</text>
+<text x="371.4" y="42" text-anchor="middle" font-size="10" fill="#555">maxpool</text>
+<line x1="302.0" y1="30.0" x2="326.0" y2="30.0" stroke="#333" marker-end="url(#a)"/>
+<rect x="440.8" y="10.0" width="115.6" height="40" rx="4" fill="#fff" stroke="#333"/>
+<text x="498.6" y="27" text-anchor="middle">BasicBlock ×2</text>
+<text x="498.6" y="42" text-anchor="middle" font-size="10" fill="#555">layer1, 148.0K</text>
+<line x1="414.8" y1="30.0" x2="438.8" y2="30.0" stroke="#333" marker-end="url(#a)"/>
+<rect x="10.0" y="76.0" width="115.6" height="40" rx="4" fill="#fff" stroke="#333"/>
+<text x="67.8" y="93" text-anchor="middle">BasicBlock ×2</text>
+<text x="67.8" y="108" text-anchor="middle" font-size="10" fill="#555">layer2, 525.6K</text>
+<polyline points="498.6,50.0 498.6,63.0 67.8,63.0 67.8,74.0" fill="none" stroke="#333" marker-end="url(#a)"/>
+<rect x="151.6" y="76.0" width="115.6" height="40" rx="4" fill="#fff" stroke="#333"/>
+<text x="209.4" y="93" text-anchor="middle">BasicBlock ×2</text>
+<text x="209.4" y="108" text-anchor="middle" font-size="10" fill="#555">layer3, 2.1M</text>
+<line x1="125.6" y1="96.0" x2="149.6" y2="96.0" stroke="#333" marker-end="url(#a)"/>
+<rect x="293.2" y="76.0" width="115.6" height="40" rx="4" fill="#fff" stroke="#333"/>
+<text x="351.0" y="93" text-anchor="middle">BasicBlock ×2</text>
+<text x="351.0" y="108" text-anchor="middle" font-size="10" fill="#555">layer4, 8.4M</text>
+<line x1="267.2" y1="96.0" x2="291.2" y2="96.0" stroke="#333" marker-end="url(#a)"/>
+<rect x="434.8" y="76.0" width="144.4" height="40" rx="4" fill="#fff" stroke="#333"/>
+<text x="507.0" y="93" text-anchor="middle">AdaptiveAvgPool2d</text>
+<text x="507.0" y="108" text-anchor="middle" font-size="10" fill="#555">avgpool</text>
+<line x1="408.8" y1="96.0" x2="432.8" y2="96.0" stroke="#333" marker-end="url(#a)"/>
+<rect x="605.2" y="76.0" width="82.0" height="40" rx="4" fill="#fff" stroke="#333"/>
+<text x="646.2" y="93" text-anchor="middle">Linear</text>
+<text x="646.2" y="108" text-anchor="middle" font-size="10" fill="#555">fc, 513.0K</text>
+<line x1="579.2" y1="96.0" x2="603.2" y2="96.0" stroke="#333" marker-end="url(#a)"/>
+</svg>
